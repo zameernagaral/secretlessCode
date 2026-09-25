@@ -1,43 +1,49 @@
 # ──────────────────────────────────────────────────────────────────────────────
-# CD Pipeline — Frontend (Vercel)
-# Primary hosting platform.
+# CD Pipeline — Frontend (Cloudflare Pages)
+# Alternative to Vercel. Globally distributed, generous free tier.
+#
+# Uses @cloudflare/next-on-pages to compile Next.js for the CF Pages edge runtime.
 #
 # Behaviour:
 #   - push to main    → production deploy
-#   - pull_request    → preview deploy (unique URL per PR)
-#   - workflow_dispatch → manual production re-deploy
+#   - pull_request    → preview deploy (unique URL per branch)
+#   - workflow_dispatch → manual trigger
 #
 # Required GitHub Secrets:
-#   VERCEL_TOKEN       → vercel.com/account/tokens
-#   VERCEL_ORG_ID      → `vercel link` locally → .vercel/project.json → orgId
-#   VERCEL_PROJECT_ID  → same file → projectId
-#   NEXT_PUBLIC_API_URL → your backend URL, e.g. https://api.secretless.example.com
+#   CF_API_TOKEN          → Cloudflare API token with "Cloudflare Pages:Edit" permission
+#                           Create at: https://dash.cloudflare.com/profile/api-tokens
+#   CF_ACCOUNT_ID         → Cloudflare account ID (shown in dashboard sidebar URL)
+#   NEXT_PUBLIC_API_URL   → Your backend URL
 # ──────────────────────────────────────────────────────────────────────────────
 
-name: CD — Frontend (Vercel)
+name: CD — Frontend (Cloudflare Pages)
 
 on:
   push:
     branches: ["main"]
     paths:
       - "frontend/**"
-      - ".github/workflows/cd-frontend.yml"
+      - ".github/workflows/cd-frontend-cf.yml"
   pull_request:
     paths:
       - "frontend/**"
   workflow_dispatch:
 
 concurrency:
-  group: cd-frontend-vercel-${{ github.ref }}
+  group: cd-frontend-cf-${{ github.ref }}
   cancel-in-progress: false
 
+env:
+  CF_PAGES_PROJECT: secretless-code   # Your Cloudflare Pages project name
+
 jobs:
-  deploy:
-    name: 🚀 Vercel ${{ github.ref == 'refs/heads/main' && 'Production' || 'Preview' }} Deploy
+  build-and-deploy:
+    name: ☁️ Cloudflare Pages ${{ github.ref == 'refs/heads/main' && 'Production' || 'Preview' }} Deploy
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pull-requests: write   # needed to post preview URL comment on PR
+      pull-requests: write
+
     defaults:
       run:
         working-directory: frontend
@@ -62,47 +68,44 @@ jobs:
       - name: TypeScript type-check
         run: npx tsc --noEmit
 
-      - name: Install Vercel CLI
-        run: npm install --global vercel@latest
+      - name: Install @cloudflare/next-on-pages
+        run: npm install --save-dev @cloudflare/next-on-pages
 
-      - name: Pull Vercel project settings & env
-        run: |
-          vercel pull --yes \
-            --environment=${{ github.ref == 'refs/heads/main' && 'production' || 'preview' }} \
-            --token=${{ secrets.VERCEL_TOKEN }}
+      - name: Build for Cloudflare Pages edge runtime
+        run: npx @cloudflare/next-on-pages
         env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-
-      - name: Build project
-        run: |
-          vercel build ${{ github.ref == 'refs/heads/main' && '--prod' || '' }} \
-            --token=${{ secrets.VERCEL_TOKEN }}
-        env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL || 'https://secretless-backend.onrender.com' }}
+          NODE_ENV: production
 
-      - name: Deploy to Vercel
+      - name: Deploy to Cloudflare Pages
         id: deploy
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CF_API_TOKEN }}
+          accountId: ${{ secrets.CF_ACCOUNT_ID }}
+          command: >
+            pages deploy .vercel/output/static
+            --project-name=${{ env.CF_PAGES_PROJECT }}
+            ${{ github.ref == 'refs/heads/main' && '--branch=main' || format('--branch={0}', github.head_ref || github.ref_name) }}
+
+      - name: Extract deploy URL
+        id: extract-url
         run: |
-          DEPLOY_URL=$(vercel deploy --prebuilt \
-            ${{ github.ref == 'refs/heads/main' && '--prod' || '' }} \
-            --token=${{ secrets.VERCEL_TOKEN }} 2>&1 | tail -1)
-          echo "url=$DEPLOY_URL" >> $GITHUB_OUTPUT
-          echo "✅ Deployed: $DEPLOY_URL"
-        env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "url=https://${{ env.CF_PAGES_PROJECT }}.pages.dev" >> $GITHUB_OUTPUT
+          else
+            SAFE_BRANCH=$(echo "${{ github.head_ref || github.ref_name }}" | sed 's/[^a-zA-Z0-9-]/-/g' | cut -c1-28)
+            echo "url=https://${SAFE_BRANCH}.${{ env.CF_PAGES_PROJECT }}.pages.dev" >> $GITHUB_OUTPUT
+          fi
 
       - name: Comment preview URL on PR
         if: github.event_name == 'pull_request'
         uses: actions/github-script@v7
         with:
           script: |
-            const deployUrl = '${{ steps.deploy.outputs.url }}';
+            const deployUrl = '${{ steps.extract-url.outputs.url }}';
             const body = [
-              '## 🚀 Vercel Preview Deployment',
+              '## ☁️ Cloudflare Pages Preview Deployment',
               '',
               `| Key | Value |`,
               `|-----|-------|`,
@@ -110,7 +113,7 @@ jobs:
               `| 📦 Commit | \`${{ github.sha }}\` |`,
               `| 👤 Author | @${{ github.actor }} |`,
               '',
-              '*Powered by [Vercel](https://vercel.com) · [Secretless Code](https://github.com/zameernagaral/secretlessCode)*'
+              '*Powered by [Cloudflare Pages](https://pages.cloudflare.com) · [Secretless Code](https://github.com/zameernagaral/secretlessCode)*'
             ].join('\n');
             github.rest.issues.createComment({
               issue_number: context.issue.number,
@@ -122,11 +125,11 @@ jobs:
       - name: Job summary
         run: |
           ENV_LABEL="${{ github.ref == 'refs/heads/main' && 'Production' || 'Preview' }}"
-          echo "## 🚀 Vercel ${ENV_LABEL} Deployment" >> $GITHUB_STEP_SUMMARY
+          echo "## ☁️ Cloudflare Pages ${ENV_LABEL} Deployment" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Key | Value |" >> $GITHUB_STEP_SUMMARY
           echo "|-----|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| URL | ${{ steps.deploy.outputs.url }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| URL | ${{ steps.extract-url.outputs.url }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Environment | ${ENV_LABEL} |" >> $GITHUB_STEP_SUMMARY
           echo "| Triggered by | @${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Commit | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
