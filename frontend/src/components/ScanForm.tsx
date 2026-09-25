@@ -1,31 +1,43 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Search, Github, ArrowRight, Sparkles, Shield, AlertCircle } from 'lucide-react';
+import { Github, ArrowRight, Shield, AlertCircle } from 'lucide-react';
 
 interface ScanFormProps {
   onScan: (url: string) => void;
   isLoading: boolean;
-  onLoadDemo: () => void;
 }
 
+// Real public repos for quick-test — no mock data
 const SAMPLE_REPOS = [
-  { label: 'Clean Test Repo (octocat/Hello-World)', url: 'https://github.com/octocat/Hello-World' },
-  { label: 'Express Starter (expressjs/express)', url: 'https://github.com/expressjs/express' },
+  { label: 'octocat/Hello-World', url: 'https://github.com/octocat/Hello-World' },
+  { label: 'expressjs/express', url: 'https://github.com/expressjs/express' },
 ];
 
-export default function ScanForm({ onScan, isLoading, onLoadDemo }: ScanFormProps) {
+// Strict client-side regex matching the backend validator exactly
+const GITHUB_URL_REGEX =
+  /^https:\/\/github\.com\/([a-zA-Z0-9](?:[a-zA-Z0-9-]{0,37}[a-zA-Z0-9])?)\/([a-zA-Z0-9_.\-]{1,100}?)(?:\.git|\/)?$/;
+
+export default function ScanForm({ onScan, isLoading }: ScanFormProps) {
   const [url, setUrl] = useState('');
   const [validationError, setValidationError] = useState('');
 
-  const validateUrl = (val: string) => {
-    if (!val.trim()) {
+  const validate = (val: string): boolean => {
+    const trimmed = val.trim();
+    if (!trimmed) {
       setValidationError('Please enter a GitHub repository URL.');
       return false;
     }
-    const githubRegex = /^https:\/\/(www\.)?github\.com\/[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+(\.git|\/)?$/;
-    if (!githubRegex.test(val.trim())) {
-      setValidationError('URL must match: https://github.com/<owner>/<repo>');
+    if (trimmed.length > 300) {
+      setValidationError('URL is too long.');
+      return false;
+    }
+    if (!trimmed.startsWith('https://github.com/')) {
+      setValidationError('Only public https://github.com URLs are supported.');
+      return false;
+    }
+    if (!GITHUB_URL_REGEX.test(trimmed)) {
+      setValidationError('Invalid URL. Expected: https://github.com/<owner>/<repository>');
       return false;
     }
     setValidationError('');
@@ -34,7 +46,7 @@ export default function ScanForm({ onScan, isLoading, onLoadDemo }: ScanFormProp
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (validateUrl(url)) {
+    if (validate(url)) {
       onScan(url.trim());
     }
   };
@@ -60,7 +72,7 @@ export default function ScanForm({ onScan, isLoading, onLoadDemo }: ScanFormProp
           </span>
         </h1>
         <p className="text-sm sm:text-base text-slate-400 max-w-2xl mx-auto">
-          Paste a public GitHub repo URL. We perform an isolated shallow clone, run Gitleaks static analysis, return masked findings, and instantly purge the workspace.
+          Paste a public GitHub repo URL. We perform an isolated shallow clone, run static analysis, return masked findings, and instantly purge the sandbox.
         </p>
       </div>
 
@@ -72,22 +84,28 @@ export default function ScanForm({ onScan, isLoading, onLoadDemo }: ScanFormProp
               <Github className="w-5 h-5" />
             </div>
             <input
-              type="text"
+              id="repo-url-input"
+              type="url"
               value={url}
               onChange={(e) => {
                 setUrl(e.target.value);
-                if (validationError) validateUrl(e.target.value);
+                if (validationError) validate(e.target.value);
               }}
               placeholder="https://github.com/owner/repository"
               disabled={isLoading}
+              autoComplete="off"
+              spellCheck={false}
+              aria-label="GitHub repository URL"
+              aria-describedby={validationError ? 'url-error' : undefined}
               className="w-full pl-12 pr-4 py-3.5 bg-slate-900/90 border border-slate-700 rounded-xl text-white placeholder-slate-500 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all disabled:opacity-50"
             />
           </div>
 
           <button
+            id="scan-submit-btn"
             type="submit"
             disabled={isLoading}
-            className="inline-flex items-center justify-center space-x-2 px-6 py-3.5 rounded-xl font-medium text-sm text-slate-950 bg-gradient-to-r from-cyan-400 to-sky-400 hover:from-cyan-300 hover:to-sky-300 active:scale-[0.98] transition-all disabled:opacity-50 shadow-lg shadow-cyan-500/20 font-semibold"
+            className="inline-flex items-center justify-center space-x-2 px-6 py-3.5 rounded-xl font-semibold text-sm text-slate-950 bg-gradient-to-r from-cyan-400 to-sky-400 hover:from-cyan-300 hover:to-sky-300 active:scale-[0.98] transition-all disabled:opacity-50 shadow-lg shadow-cyan-500/20"
           >
             <span>{isLoading ? 'Scanning...' : 'Scan Repository'}</span>
             <ArrowRight className="w-4 h-4 text-slate-950" />
@@ -95,39 +113,26 @@ export default function ScanForm({ onScan, isLoading, onLoadDemo }: ScanFormProp
         </form>
 
         {validationError && (
-          <div className="mt-2.5 px-2 flex items-center space-x-1.5 text-xs text-rose-400 font-mono">
-            <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+          <div id="url-error" role="alert" className="mt-2.5 px-2 flex items-center space-x-1.5 text-xs text-rose-400 font-mono">
+            <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" aria-hidden="true" />
             <span>{validationError}</span>
           </div>
         )}
 
-        {/* Quick Sample Repos & Mock Demo Pill */}
-        <div className="mt-4 pt-3 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-2 text-xs">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-slate-500 font-mono text-[11px]">Quick Tests:</span>
-            {SAMPLE_REPOS.map((sample, idx) => (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => handleSelectSample(sample.url)}
-                disabled={isLoading}
-                className="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-cyan-300 hover:border-slate-700 font-mono text-[11px] transition-colors"
-              >
-                {sample.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Instant Demo Visualization Button */}
-          <button
-            type="button"
-            onClick={onLoadDemo}
-            className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-lg bg-indigo-950/80 text-indigo-300 border border-indigo-700/50 hover:bg-indigo-900/90 font-mono text-[11px] transition-colors"
-            title="Preview detection report with dummy AWS, Stripe, and Database secrets"
-          >
-            <Sparkles className="w-3 h-3 text-indigo-400" />
-            <span>Instant Demo Mock Preview</span>
-          </button>
+        {/* Quick real-repo shortcuts — no mock data */}
+        <div className="mt-4 pt-3 border-t border-slate-800/80 flex flex-wrap items-center gap-2 text-xs">
+          <span className="text-slate-500 font-mono text-[11px]">Quick Scan:</span>
+          {SAMPLE_REPOS.map((sample) => (
+            <button
+              key={sample.url}
+              type="button"
+              onClick={() => handleSelectSample(sample.url)}
+              disabled={isLoading}
+              className="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-cyan-300 hover:border-slate-700 font-mono text-[11px] transition-colors"
+            >
+              {sample.label}
+            </button>
+          ))}
         </div>
       </div>
     </div>

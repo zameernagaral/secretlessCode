@@ -7,14 +7,30 @@ node_modules/
 frontend/.next/
 frontend/out/
 
-# Environment files
+# Environment files — NEVER commit real .env files
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*
+!.env.example          # .env.example is safe — it's the template
 backend/.env
+backend/.env.*
+!backend/.env.example
 frontend/.env.local
+frontend/.env.*
+!frontend/.env.example
+
+# Key / cert files — catch leaked keys before they reach git
+*.pem
+*.key
+*.p12
+*.pfx
+*.cer
+*.crt
+private_key*
+secret_key*
+
+# Scan report artifacts (may contain masked finding paths)
+secretless-report-*.json
+secretless-pr-report-*.json
 
 # Logs
 npm-debug.log*

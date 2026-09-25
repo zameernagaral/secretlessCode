@@ -23,64 +23,15 @@ interface ScanResultData {
     medium: number;
   };
   findings: Finding[];
+  report?: {
+    stored: boolean;
+    provider?: string;
+    presignedUrl?: string;
+    expiresIn?: number;
+    publicUrl?: string | null;
+    reason?: string;
+  };
 }
-
-// Preset dummy findings for instant demo preview
-const DUMMY_MOCK_FINDINGS: ScanResultData = {
-  status: 'success',
-  repo: 'secretless-demo/sample-vulnerable-repo',
-  scannedAt: new Date().toISOString(),
-  scanDurationMs: 840,
-  repoSizeMB: 1.4,
-  summary: {
-    total: 4,
-    critical: 2,
-    high: 1,
-    medium: 1,
-  },
-  findings: [
-    {
-      id: 'demo-1',
-      filePath: 'src/config.py',
-      lineNumber: 12,
-      endLine: 12,
-      secretType: 'AWS Access Key ID',
-      ruleId: 'aws-access-token',
-      severity: 'Critical',
-      rawMatch: 'AKIAIOSFODNN7EXAMPLE',
-    },
-    {
-      id: 'demo-2',
-      filePath: 'src/config.py',
-      lineNumber: 18,
-      endLine: 18,
-      secretType: 'Stripe Live Secret Key',
-      ruleId: 'stripe-api-key',
-      severity: 'Critical',
-      rawMatch: 'sk_test_mockStripeToken9948281048291048',
-    },
-    {
-      id: 'demo-3',
-      filePath: 'backend/database.js',
-      lineNumber: 8,
-      endLine: 8,
-      secretType: 'GitHub Personal Access Token',
-      ruleId: 'github-pat',
-      severity: 'High',
-      rawMatch: 'ghp_TEST_MOCK_PAT_FOR_SCANNER_DEMO_PURPOSES',
-    },
-    {
-      id: 'demo-4',
-      filePath: 'backend/database.js',
-      lineNumber: 14,
-      endLine: 14,
-      secretType: 'Slack Incoming Webhook URL',
-      ruleId: 'slack-webhook-url',
-      severity: 'Medium',
-      rawMatch: 'https://hooks.slack.com/services/T01234567/B01234567/FakeSlackTokenForTesting00',
-    },
-  ],
-};
 
 export default function Home() {
   const [status, setStatus] = useState<ScanStatus>('idle');
@@ -127,13 +78,6 @@ export default function Home() {
     }
   };
 
-  const handleLoadDemo = () => {
-    setStatus('complete');
-    setActiveUrl('https://github.com/secretless-demo/sample-vulnerable-repo');
-    setErrorInfo(null);
-    setScanResult(DUMMY_MOCK_FINDINGS);
-  };
-
   return (
     <div className="min-h-screen flex flex-col justify-between">
       <div>
@@ -144,7 +88,6 @@ export default function Home() {
           <ScanForm
             onScan={handleScan}
             isLoading={status === 'scanning'}
-            onLoadDemo={handleLoadDemo}
           />
 
           {/* Error Banner */}
@@ -173,6 +116,24 @@ export default function Home() {
                 repoName={scanResult.repo}
                 scannedAt={scanResult.scannedAt}
               />
+
+              {/* Report download link (shown when cloud storage is configured) */}
+              {scanResult.report?.stored && scanResult.report.presignedUrl && (
+                <div className="mt-4 flex justify-end">
+                  <a
+                    href={scanResult.report.presignedUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-surface-200 border border-slate-700 text-slate-300 text-sm hover:border-cyan-500 hover:text-cyan-400 transition-colors"
+                    aria-label="Download masked scan report"
+                  >
+                    ↓ Download Report
+                    <span className="text-xs text-slate-500">
+                      (expires in {Math.round((scanResult.report.expiresIn ?? 3600) / 60)}min)
+                    </span>
+                  </a>
+                </div>
+              )}
             </div>
           )}
         </main>
