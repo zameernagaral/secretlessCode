@@ -3,14 +3,20 @@ const { validateGitHubUrl } = require('../utils/validator');
 const { scanRepository } = require('../services/scanner');
 const { sendScanNotification } = require('../services/notifier');
 const { saveReport, getProviderName } = require('../services/storage/storageRouter');
+const { validateBody, SCAN_SCHEMA } = require('../middlewares/validateSchema');
 
 const router = express.Router();
 
 /**
  * POST /api/scan
  * Body: { repoUrl: "https://github.com/owner/repo" }
+ *
+ * Middleware stack:
+ *   1. validateBody(SCAN_SCHEMA) — strict: only {repoUrl} allowed, string 10-300 chars
+ *   2. validateGitHubUrl()       — SSRF guard, shell injection, pattern enforcement
+ *   3. scanRepository()          — isolated clone + engine scan + guaranteed cleanup
  */
-router.post('/scan', async (req, res) => {
+router.post('/scan', validateBody(SCAN_SCHEMA), async (req, res) => {
   const { repoUrl } = req.body || {};
 
   // 1. Strict input validation

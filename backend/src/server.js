@@ -7,6 +7,8 @@ const githubRouter = require('./routes/github');
 const adminRouter = require('./routes/admin');
 const { requireAdminAuth } = require('./middlewares/auth');
 const { sanitizeRequestBody } = require('./utils/validator');
+const { requestLogger } = require('./middlewares/requestLogger');
+const { outputSanitizer } = require('./middlewares/outputSanitizer');
 const {
   globalLimiter,
   scanLimiter,
@@ -50,9 +52,16 @@ app.use(cors({
   maxAge: 86400   // Cache preflight for 24h
 }));
 
+// ── Request Audit Logging ──────────────────────────────────────────────────────
+// Assigns req.id, logs all inbound requests (no sensitive fields)
+app.use(requestLogger);
+
 // ── Body parsing & sanitization ────────────────────────────────────────────────
 app.use(express.json({ limit: '100kb' }));
-app.use(sanitizeRequestBody);   // Strip prototype-polluting keys from all bodies
+app.use(sanitizeRequestBody);   // Strip __proto__, constructor, prototype pollution
+
+// ── Output sanitization (masks rawMatch in all responses) ─────────────────────
+app.use(outputSanitizer);
 
 // ── Global rate limiter (all routes except GitHub webhook) ─────────────────────
 app.use(globalLimiter);
