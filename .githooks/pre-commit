@@ -1,0 +1,30 @@
+#!/bin/sh
+# Secretless Code - Pre-commit secret scanning hook
+# Prevents committing secrets or private keys to this repository
+
+echo "🔍 [Secretless Code] Checking staged files for secrets before commit..."
+
+# 1. If gitleaks is installed, run it against staged files
+if command -v gitleaks >/dev/null 2>&1; then
+    gitleaks protect --staged --verbose
+    GITLEAKS_EXIT=$?
+    if [ $GITLEAKS_EXIT -ne 0 ]; then
+        echo "❌ [Secretless Code] Commit blocked: Gitleaks detected secrets in staged files!"
+        echo "   Please review staged files and remove any credentials before committing."
+        exit 1
+    fi
+else
+    # Fallback heuristic secret scanner using git diff and regex patterns
+    SUSPECT_PATTERNS='(AKIA[0-9A-Z]{16}|ghp_[0-9a-zA-Z]{36}|github_pat_[0-9a-zA-Z_]{82}|sk_live_[0-9a-zA-Z]{24}|xox[baprs]-[0-9a-zA-Z]{10,48}|-----BEGIN[ A-Z0-9_-]*PRIVATE KEY-----)'
+
+    STAGED_DIFF=$(git diff --cached --name-only | grep -v "dummy-test-samples" | xargs git diff --cached 2>/dev/null)
+
+    if echo "$STAGED_DIFF" | grep -E -q "$SUSPECT_PATTERNS"; then
+        echo "❌ [Secretless Code] Commit blocked: Detected potential high-risk secret pattern in staged diff!"
+        echo "   Please inspect your staged changes."
+        exit 1
+    fi
+fi
+
+echo "✅ [Secretless Code] Pre-commit secret check passed."
+exit 0

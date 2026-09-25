@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: secretless-code-backend
+    env: docker
+    dockerfilePath: backend/Dockerfile
+    dockerContext: backend
+    plan: free
+    region: oregon
+    healthCheckPath: /api/health
+    envVars:
+      - key: PORT
+        value: 4000
+      - key: CORS_ORIGIN
+        value: "*"
+      - key: CLONE_TIMEOUT_MS
+        value: 25000
+      - key: SCAN_TIMEOUT_MS
+        value: 25000
+      - key: MAX_REPO_SIZE_MB
+        value: 60
