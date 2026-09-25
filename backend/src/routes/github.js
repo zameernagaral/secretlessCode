@@ -3,6 +3,7 @@ const { verifyWebhookSignature } = require('../utils/webhookVerify');
 const { getInstallationOctokit, postPRReview } = require('../services/githubApp');
 const { scanPRBranch } = require('../services/prScanner');
 const { sendScanNotification } = require('../services/notifier');
+const { saveReport } = require('../services/storage/storageRouter');
 
 const router = express.Router();
 
@@ -87,13 +88,28 @@ router.post(
       // Post an in-progress check status on the PR (pending indicator)
       await setCommitStatus(octokit, owner, repoName, headSha, 'pending', 'Secretless Code is scanning for secrets...');
 
-      // Scan PR branch
-      const { findings, summary, engine, scanDurationMs } = await scanPRBranch(
+      // Scan PR branch (now returns the full scan result object)
+      const scanResult = await scanPRBranch(
         cloneUrl,
         headRef,
         owner,
         repoName
       );
+
+      const { findings, summary, engineUsed, scanDurationMs } = scanResult;
+
+      // Save masked report to cloud storage (fire-and-forget)
+      const storagePromise = saveReport(scanResult).catch(() => ({ stored: false }));
+
+      // Await storage just long enough to see if we get a URL for the PR comment
+      const storageResult = await Promise.race([
+        storagePromise,
+        new Promise(resolve => setTimeout(() => resolve({ stored: false }), 5000))
+      ]);
+
+      // If we got a presigned URL or public URL, we could inject it into the review body
+      // but for now postPRReview just takes findings. 
+      // (Optional future enhancement: pass storageResult.presignedUrl to postPRReview to add a "Download full report" link)
 
       // Post findings review to GitHub PR
       await postPRReview(octokit, owner, repoName, prNumber, headSha, findings);
@@ -125,7 +141,7 @@ router.post(
       }).catch(() => {});
 
       console.log(
-        `[PR Scanner] ✅ Done: ${owner}/${repoName} PR #${prNumber} — ${summary.total} findings in ${scanDurationMs}ms via ${engine}`
+        `[PR Scanner] ✅ Done: ${owner}/${repoName} PR #${prNumber} — ${summary.total} findings in ${scanDurationMs}ms via ${engineUsed}`
       );
 
     } catch (err) {

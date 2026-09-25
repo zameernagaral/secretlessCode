@@ -45,6 +45,18 @@ services:
       DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-}
       NOTIFY_ON_CLEAN_SCANS: ${NOTIFY_ON_CLEAN_SCANS:-false}
 
+      # Cloud Storage (Optional)
+      STORAGE_PROVIDER: ${STORAGE_PROVIDER:-none}
+      STORAGE_PRESIGN_EXPIRY_SEC: ${STORAGE_PRESIGN_EXPIRY_SEC:-3600}
+      STORAGE_BUCKET: ${STORAGE_BUCKET:-}
+      STORAGE_REGION: ${STORAGE_REGION:-auto}
+      STORAGE_ACCESS_KEY_ID: ${STORAGE_ACCESS_KEY_ID:-}
+      STORAGE_SECRET_KEY: ${STORAGE_SECRET_KEY:-}
+      STORAGE_ENDPOINT: ${STORAGE_ENDPOINT:-}
+      SUPABASE_URL: ${SUPABASE_URL:-}
+      SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY:-}
+      SUPABASE_STORAGE_BUCKET: ${SUPABASE_STORAGE_BUCKET:-scan-reports}
+
     volumes:
       # Mount host /tmp for ephemeral scan sandboxes (optional — uses container /tmp by default)
       - /tmp:/tmp

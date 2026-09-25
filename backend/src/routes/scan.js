@@ -2,6 +2,7 @@ const express = require('express');
 const { validateGitHubUrl } = require('../utils/validator');
 const { scanRepository } = require('../services/scanner');
 const { sendScanNotification } = require('../services/notifier');
+const { saveReport, getProviderName } = require('../services/storage/storageRouter');
 
 const router = express.Router();
 
@@ -26,7 +27,10 @@ router.post('/scan', async (req, res) => {
     // 2. Perform isolated clone & scan
     const result = await scanRepository(validation.sanitizedUrl, validation.repo);
 
-    // 3. Fire-and-forget Slack/Discord notification (never blocks response)
+    // 3. Save masked report to cloud storage (fire-and-forget — never blocks response)
+    const storagePromise = saveReport(result).catch(() => ({ stored: false }));
+
+    // 4. Fire-and-forget Slack/Discord notification (never blocks response)
     sendScanNotification({
       repo: validation.repo,
       source: 'Manual Scan (Dashboard)',
@@ -35,9 +39,31 @@ router.post('/scan', async (req, res) => {
       scanDurationMs: result.scanDurationMs
     }).catch(() => {});
 
+    // Await storage just long enough to get the report URL to include in the response
+    const storageResult = await Promise.race([
+      storagePromise,
+      new Promise(resolve => setTimeout(() => resolve({ stored: false, reason: 'storage timeout' }), 5000))
+    ]);
+
     return res.status(200).json({
       status: 'success',
-      data: result
+      data: {
+        ...result,
+        report: storageResult.stored
+          ? {
+              stored: true,
+              provider: storageResult.provider,
+              key: storageResult.key,
+              presignedUrl: storageResult.presignedUrl,
+              expiresIn: storageResult.expiresIn,
+              publicUrl: storageResult.url || null
+            }
+          : {
+              stored: false,
+              provider: getProviderName(),
+              reason: storageResult.reason
+            }
+      }
     });
   } catch (error) {
     console.error(`[Scan Error] for ${validation.sanitizedUrl}:`, error.message);
