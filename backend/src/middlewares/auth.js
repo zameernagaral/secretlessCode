@@ -15,15 +15,16 @@
  */
 
 const crypto = require('crypto');
+const logger = require('../utils/logger');
 
 const ADMIN_API_KEY = process.env.ADMIN_API_KEY || '';
 const MIN_KEY_LENGTH = 32;
 
 // Warn loudly at startup if the admin key is missing or weak
 if (!ADMIN_API_KEY) {
-  console.warn('[Auth] ⚠️  ADMIN_API_KEY is not set. Admin routes are disabled. Set it in your .env to enable them.');
+  logger.warn('[Auth] ADMIN_API_KEY is not set — admin routes are disabled.');
 } else if (ADMIN_API_KEY.length < MIN_KEY_LENGTH) {
-  console.warn(`[Auth] ⚠️  ADMIN_API_KEY is shorter than ${MIN_KEY_LENGTH} characters. Use a longer, more random key.`);
+  logger.warn(`[Auth] ADMIN_API_KEY is shorter than ${MIN_KEY_LENGTH} characters — use a longer key.`);
 }
 
 /**

@@ -14,6 +14,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { maskSecret } from '../utils/maskSecret';
+import { ProgressiveBlur } from '@/components/ui/skiper-ui/skiper41';
 
 export interface Finding {
   id: string;
@@ -100,15 +101,15 @@ export default function ResultsTable({ findings, repoName, scannedAt }: ResultsT
   }
 
   return (
-    <div className="glass-panel rounded-2xl border border-slate-800/80 overflow-hidden mb-12 shadow-2xl">
+    <div className="glass-panel rounded-lg overflow-hidden mb-12">
       {/* Table Header Controls */}
-      <div className="p-4 sm:p-6 border-b border-slate-800/80 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-surface-100/40">
+      <div className="p-4 sm:p-6 border-b border-secondary flex flex-col md:flex-row md:items-center justify-between gap-4 bg-surface-100">
         <div>
-          <h3 className="text-base sm:text-lg font-bold text-white flex items-center space-x-2">
+          <h3 className="text-base sm:text-lg font-heading text-text flex items-center space-x-2">
             <span>Detection Report:</span>
-            <span className="text-cyan-400 font-mono">{repoName}</span>
+            <span className="text-primary font-mono">{repoName}</span>
           </h3>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <p className="text-xs text-muted mt-0.5">
             Showing {filteredFindings.length} of {findings.length} findings • Secrets are masked client-side
           </p>
         </div>
@@ -127,15 +128,15 @@ export default function ResultsTable({ findings, repoName, scannedAt }: ResultsT
           </div>
 
           {/* Severity Filter */}
-          <div className="flex items-center space-x-1 bg-slate-900/80 p-1 rounded-xl border border-slate-800">
+          <div className="flex items-center space-x-1 bg-surface-50 p-1 border border-secondary">
             {['ALL', 'CRITICAL', 'HIGH', 'MEDIUM'].map((sev) => (
               <button
                 key={sev}
                 onClick={() => setSelectedSeverity(sev)}
-                className={`text-[11px] font-mono px-2.5 py-1 rounded-lg transition-all ${
+                className={`text-[11px] font-mono px-2.5 py-1 transition-colors ${
                   selectedSeverity === sev
-                    ? 'bg-slate-700 text-white font-semibold shadow-sm'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'bg-secondary text-text font-semibold'
+                    : 'text-muted hover:text-text'
                 }`}
               >
                 {sev}
@@ -146,20 +147,20 @@ export default function ResultsTable({ findings, repoName, scannedAt }: ResultsT
           {/* Export Report */}
           <button
             onClick={exportJSON}
-            className="flex items-center space-x-1.5 text-xs font-mono px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors"
+            className="flex items-center space-x-1.5 text-xs font-mono px-3 py-1.5 bg-surface-100 hover:bg-surface-200 text-text border border-secondary transition-colors"
             title="Download sanitized report"
           >
-            <Download className="w-3.5 h-3.5 text-cyan-400" />
+            <Download className="w-3.5 h-3.5 text-accent" />
             <span>Export JSON</span>
           </button>
         </div>
       </div>
 
       {/* Responsive Table */}
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto relative">
         <table className="w-full text-left text-xs border-collapse">
           <thead>
-            <tr className="border-b border-slate-800/80 bg-slate-900/60 text-slate-400 font-mono uppercase text-[11px] tracking-wider">
+            <tr className="border-b border-secondary bg-surface-50 text-muted font-mono uppercase text-[11px] tracking-wider">
               <th className="py-3.5 px-4 sm:px-6">Severity</th>
               <th className="py-3.5 px-4">Secret Type / Rule</th>
               <th className="py-3.5 px-4">File Path</th>
@@ -167,7 +168,7 @@ export default function ResultsTable({ findings, repoName, scannedAt }: ResultsT
               <th className="py-3.5 px-4 sm:px-6">Masked Value</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-800/40 font-mono">
+          <tbody className="divide-y divide-secondary font-mono">
             {filteredFindings.map((finding) => {
               const masked = maskSecret(finding.rawMatch);
               const isCritical = finding.severity === 'Critical';
@@ -179,17 +180,17 @@ export default function ResultsTable({ findings, repoName, scannedAt }: ResultsT
               return (
                 <tr 
                   key={finding.id} 
-                  className="hover:bg-slate-800/30 transition-colors group"
+                  className="hover:bg-surface-200 transition-colors group"
                 >
                   {/* Severity Badge */}
                   <td className="py-3.5 px-4 sm:px-6 whitespace-nowrap">
                     <span
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
+                      className={`inline-flex items-center px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider border ${
                         isCritical
-                          ? 'bg-rose-950/70 text-rose-300 border-rose-800/60 ring-1 ring-rose-500/20'
+                          ? 'bg-[#C13B2E]/10 text-[#C13B2E] border-[#C13B2E]'
                           : isHigh
-                          ? 'bg-amber-950/70 text-amber-300 border-amber-800/60'
-                          : 'bg-cyan-950/70 text-cyan-300 border-cyan-800/60'
+                          ? 'bg-[#D97C2B]/10 text-[#D97C2B] border-[#D97C2B]'
+                          : 'bg-[#C9A227]/10 text-[#C9A227] border-[#C9A227]'
                       }`}
                     >
                       {finding.severity}
@@ -198,23 +199,23 @@ export default function ResultsTable({ findings, repoName, scannedAt }: ResultsT
 
                   {/* Secret Type / Rule */}
                   <td className="py-3.5 px-4">
-                    <div className="font-sans font-medium text-slate-200">
+                    <div className="font-body font-medium text-text">
                       {finding.secretType}
                     </div>
-                    <div className="text-[10px] text-slate-500 font-mono mt-0.5">
+                    <div className="text-[10px] text-muted font-mono mt-0.5">
                       {finding.ruleId}
                     </div>
                   </td>
 
                   {/* File Path */}
                   <td className="py-3.5 px-4">
-                    <div className="flex items-center space-x-2 text-slate-300">
-                      <FileCode className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" />
+                    <div className="flex items-center space-x-2 text-text font-mono">
+                      <FileCode className="w-3.5 h-3.5 text-primary flex-shrink-0" />
                       <a
                         href={githubLineUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="hover:text-cyan-400 hover:underline flex items-center space-x-1 group/link truncate max-w-[200px] sm:max-w-xs"
+                        className="hover:text-accent hover:underline flex items-center space-x-1 group/link truncate max-w-[200px] sm:max-w-xs"
                         title={finding.filePath}
                       >
                         <span className="truncate">{finding.filePath}</span>
@@ -225,7 +226,7 @@ export default function ResultsTable({ findings, repoName, scannedAt }: ResultsT
 
                   {/* Line Number */}
                   <td className="py-3.5 px-4 whitespace-nowrap">
-                    <span className="px-2 py-0.5 rounded bg-slate-800/80 text-slate-300 border border-slate-700/60 text-[11px]">
+                    <span className="px-2 py-0.5 bg-surface-50 text-text border border-secondary text-[11px] font-mono">
                       L{finding.lineNumber}
                     </span>
                   </td>
@@ -233,17 +234,17 @@ export default function ResultsTable({ findings, repoName, scannedAt }: ResultsT
                   {/* Masked Secret Value */}
                   <td className="py-3.5 px-4 sm:px-6 whitespace-nowrap">
                     <div className="flex items-center space-x-2">
-                      <div className="flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-slate-950/90 border border-slate-800 text-slate-300 text-xs font-mono selection:bg-slate-800">
-                        <Lock className="w-3 h-3 text-emerald-400 flex-shrink-0" />
+                      <div className="flex items-center space-x-1.5 px-2.5 py-1 bg-surface-200 border border-secondary text-text text-xs font-mono">
+                        <Lock className="w-3 h-3 text-accent flex-shrink-0" />
                         <span className="tracking-wider">{masked}</span>
                       </div>
                       <button
                         onClick={() => handleCopy(masked, finding.id)}
-                        className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                        className="p-1 text-muted hover:text-text hover:bg-surface-200 transition-colors"
                         title="Copy masked secret"
                       >
                         {copiedId === finding.id ? (
-                          <Check className="w-3.5 h-3.5 text-emerald-400" />
+                          <Check className="w-3.5 h-3.5 text-accent" />
                         ) : (
                           <Copy className="w-3.5 h-3.5" />
                         )}
@@ -255,6 +256,9 @@ export default function ResultsTable({ findings, repoName, scannedAt }: ResultsT
             })}
           </tbody>
         </table>
+        {filteredFindings.length > 3 && (
+          <ProgressiveBlur position="bottom" backgroundColor="#1B1B16" blurAmount="8px" height="60px" />
+        )}
       </div>
     </div>
   );

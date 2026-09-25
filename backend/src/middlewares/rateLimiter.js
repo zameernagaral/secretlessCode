@@ -1,4 +1,5 @@
 const rateLimit = require('express-rate-limit');
+const { ipKeyGenerator } = rateLimit;
 
 /**
  * Standard rate limit response formatter.
@@ -32,7 +33,7 @@ const globalLimiter = rateLimit({
   legacyHeaders: false,
   message: `Too many requests from this IP. Limit: ${GLOBAL_MAX} requests per ${GLOBAL_WINDOW / 60000} minutes.`,
   handler: rateLimitHandler,
-  skip: (req) => req.path === '/api/github/webhook' // GitHub sends burst webhooks — skip global limit
+  skip: (req) => req.path === '/api/github/webhook' || process.env.NODE_ENV === 'test'
 });
 
 // ── 2. Scan endpoint limiter ──────────────────────────────────────────────────
@@ -46,10 +47,7 @@ const scanLimiter = rateLimit({
   legacyHeaders: false,
   message: `Scan limit exceeded. Maximum ${SCAN_MAX} scans per ${SCAN_WINDOW / 60000} minutes per IP. Please wait before scanning again.`,
   handler: rateLimitHandler,
-  keyGenerator: (req) => {
-    // Use X-Forwarded-For if behind a proxy (Render, Vercel, Nginx)
-    return req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip;
-  },
+  keyGenerator: (req) => ipKeyGenerator(req),
   skip: (req) => process.env.NODE_ENV === 'test'
 });
 
@@ -63,7 +61,8 @@ const healthLimiter = rateLimit({
   standardHeaders: 'draft-7',
   legacyHeaders: false,
   message: `Health check rate limit reached. Max ${HEALTH_MAX} requests per minute.`,
-  handler: rateLimitHandler
+  handler: rateLimitHandler,
+  skip: (req) => process.env.NODE_ENV === 'test'
 });
 
 // ── 4. GitHub Webhook limiter ─────────────────────────────────────────────────
@@ -78,7 +77,8 @@ const webhookLimiter = rateLimit({
   legacyHeaders: false,
   message: 'Webhook rate limit exceeded.',
   handler: rateLimitHandler,
-  keyGenerator: () => 'github-webhook' // all GitHub events share one bucket (not per-IP)
+  keyGenerator: () => 'github-webhook', // all GitHub events share one bucket (not per-IP)
+  skip: (req) => process.env.NODE_ENV === 'test'
 });
 
 module.exports = {

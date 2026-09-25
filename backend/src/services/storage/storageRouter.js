@@ -1,3 +1,4 @@
+const logger = require('../../utils/logger');
 /**
  * Storage Router — Secretless Code
  *
@@ -56,7 +57,7 @@ async function saveReport(scanResult) {
   }
 
   if (!provider.isConfigured()) {
-    console.warn(`[Storage] Provider "${STORAGE_PROVIDER}" selected but not fully configured — skipping report save.`);
+    logger.warn('[Storage] Provider not fully configured — skipping report save.', { provider: STORAGE_PROVIDER });
     return { stored: false, reason: `Provider "${STORAGE_PROVIDER}" credentials not configured.` };
   }
 
@@ -68,7 +69,7 @@ async function saveReport(scanResult) {
 
     const result = await provider.upload(key, buffer, 'application/json');
 
-    console.log(`[Storage] ✅ Report saved: ${result.key} via ${STORAGE_PROVIDER}`);
+    logger.info('[Storage] Report saved', { key: result.key, provider: STORAGE_PROVIDER });
 
     return {
       stored: true,
@@ -80,7 +81,7 @@ async function saveReport(scanResult) {
     };
 
   } catch (err) {
-    console.error(`[Storage] ❌ Failed to save report via ${STORAGE_PROVIDER}:`, err.message);
+    logger.error('[Storage] Failed to save report', { provider: STORAGE_PROVIDER, error: err.message });
     // Non-fatal: return storage failure info instead of throwing
     return { stored: false, reason: err.message };
   }

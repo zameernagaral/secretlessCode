@@ -4,11 +4,12 @@ const { getInstallationOctokit, postPRReview } = require('../services/githubApp'
 const { scanPRBranch } = require('../services/prScanner');
 const { sendScanNotification } = require('../services/notifier');
 const { saveReport } = require('../services/storage/storageRouter');
+const logger = require('../utils/logger');
 
 const router = express.Router();
 
 /**
- * POST /api/github/webhook
+ * POST /webhooks/github
  *
  * Receives GitHub App webhook events.
  * Currently handles:
@@ -19,7 +20,7 @@ const router = express.Router();
  * This route uses express.raw() as a middleware (set in server.js) so we receive a Buffer.
  */
 router.post(
-  '/github/webhook',
+  '/webhooks/github',
   express.raw({ type: 'application/json' }), // MUST be raw for HMAC verification
   async (req, res) => {
     const webhookSecret = process.env.GITHUB_WEBHOOK_SECRET;
@@ -27,17 +28,17 @@ router.post(
     const eventType = req.headers['x-github-event'];
 
     // 1. Immediately acknowledge GitHub to prevent 10s timeout re-deliveries
-    res.status(202).json({ status: 'received' });
+    res.status(202).json({ success: true, data: { status: 'received' } });
 
     // 2. Verify webhook signature (reject tampered / unauthenticated requests)
     if (webhookSecret) {
-      const rawBody = req.body; // Buffer from express.raw()
+      const rawBody = req.body;
       if (!verifyWebhookSignature(webhookSecret, rawBody, signature)) {
-        console.warn('[Webhook] Invalid signature — ignoring event.');
+        logger.warn('[Webhook] Invalid signature — ignoring event.');
         return;
       }
     } else {
-      console.warn('[Webhook] GITHUB_WEBHOOK_SECRET not set — signature verification skipped. Set it in production!');
+      logger.warn('[Webhook] GITHUB_WEBHOOK_SECRET not set — signature verification skipped.');
     }
 
     // 3. Parse body
@@ -45,20 +46,20 @@ router.post(
     try {
       payload = JSON.parse(req.body.toString('utf8'));
     } catch {
-      console.error('[Webhook] Failed to parse webhook payload JSON.');
+      logger.warn('[Webhook] Failed to parse webhook payload.');
       return;
     }
 
     // 4. Only handle pull_request events
     if (eventType !== 'pull_request') {
-      console.log(`[Webhook] Ignoring non-PR event: ${eventType}`);
+      logger.info('[Webhook] Ignoring non-PR event', { eventType });
       return;
     }
 
     // 5. Only scan on open / sync (new commits pushed) / reopen
     const action = payload.action;
     if (!['opened', 'synchronize', 'reopened'].includes(action)) {
-      console.log(`[Webhook] Ignoring PR action: ${action}`);
+      logger.info('[Webhook] Ignoring PR action', { action });
       return;
     }
 
@@ -67,7 +68,7 @@ router.post(
     const installationId = payload.installation?.id;
 
     if (!pr || !repo || !installationId) {
-      console.error('[Webhook] Payload missing required fields (pull_request / repository / installation).');
+      logger.warn('[Webhook] Payload missing required fields.');
       return;
     }
 
@@ -78,7 +79,7 @@ router.post(
     const headSha = pr.head.sha;       // HEAD commit SHA for review
     const cloneUrl = repo.clone_url;   // public HTTPS clone URL
 
-    console.log(`[PR Scanner] Starting scan: ${owner}/${repoName} PR #${prNumber} (${headRef}) — commit ${headSha.slice(0, 7)}`);
+    logger.info('[PR Scanner] Starting scan', { repo: `${owner}/${repoName}`, pr: prNumber, ref: headRef, sha: headSha.slice(0, 7) });
 
     // 6. Run the full scan pipeline (async — already sent 202)
     try {
@@ -140,12 +141,10 @@ router.post(
         scanDurationMs
       }).catch(() => {});
 
-      console.log(
-        `[PR Scanner] ✅ Done: ${owner}/${repoName} PR #${prNumber} — ${summary.total} findings in ${scanDurationMs}ms via ${engineUsed}`
-      );
+      logger.info('[PR Scanner] Done', { repo: `${owner}/${repoName}`, pr: prNumber, findings: summary.total, ms: scanDurationMs, engine: engineUsed });
 
     } catch (err) {
-      console.error(`[PR Scanner] ❌ Error scanning PR #${prNumber}:`, err.message);
+      logger.error('[PR Scanner] Scan failed', { pr: prNumber, error: err.message });
 
       // Try to post error status to commit
       try {
@@ -178,8 +177,7 @@ async function setCommitStatus(octokit, owner, repo, sha, state, description, co
       context
     });
   } catch (err) {
-    // Non-fatal — some repos may not allow status checks from the app
-    console.warn(`[Commit Status] Could not set status: ${err.message}`);
+    logger.warn('[Commit Status] Could not set commit status', { error: err.message });
   }
 }
 

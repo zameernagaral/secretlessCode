@@ -9,24 +9,29 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: "#090D16",
+        background: '#1B1B16',
+        text: '#EDE8DC',
+        primary: '#B5451B',
+        secondary: '#8A8672',
+        accent: '#E8B93D',
+        // Provide standard variants that are mapped back to our brand colors to ensure UI components don't break,
+        // but avoid generic blue/purple styles as requested.
+        muted: '#8A8672',
+        border: '#8A8672',
+        input: '#8A8672',
+        ring: '#E8B93D',
         surface: {
-          50: "#1E2638",
-          100: "#161D2D",
-          200: "#0F1523",
-          300: "#0A0E18"
-        },
-        cyber: {
-          blue: "#38bdf8",
-          cyan: "#06b6d4",
-          emerald: "#10b981",
-          rose: "#f43f5e",
-          amber: "#f59e0b",
-          purple: "#8b5cf6"
+          50: '#2A2A22',
+          100: '#24241D',
+          200: '#1F1F19',
+          300: '#1B1B16'
         }
       },
       fontFamily: {
-        mono: ["var(--font-jetbrains-mono)", "JetBrains Mono", "monospace"],
+        heading: ['"Archivo"', 'sans-serif'],
+        body: ['"IBM Plex Sans"', 'sans-serif'],
+        mono: ['"IBM Plex Mono"', 'monospace'],
+        sans: ['"IBM Plex Sans"', 'sans-serif'], // fallback for standard sans
       },
       animation: {
         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
@@ -40,7 +45,7 @@ const config: Config = {
       }
     },
   },
-  plugins: [],
+  plugins: [require("tailwindcss-animate")],
 };
 
 export default config;

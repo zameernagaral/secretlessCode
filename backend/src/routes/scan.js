@@ -4,6 +4,7 @@ const { scanRepository } = require('../services/scanner');
 const { sendScanNotification } = require('../services/notifier');
 const { saveReport, getProviderName } = require('../services/storage/storageRouter');
 const { validateBody, SCAN_SCHEMA } = require('../middlewares/validateSchema');
+const logger = require('../utils/logger');
 
 const router = express.Router();
 
@@ -23,9 +24,11 @@ router.post('/scan', validateBody(SCAN_SCHEMA), async (req, res) => {
   const validation = validateGitHubUrl(repoUrl);
   if (!validation.valid) {
     return res.status(400).json({
-      status: 'error',
-      errorCode: 'INVALID_URL',
-      message: validation.error
+      success: false,
+      error: {
+        code: 'INVALID_URL',
+        message: validation.error
+      }
     });
   }
 
@@ -52,7 +55,7 @@ router.post('/scan', validateBody(SCAN_SCHEMA), async (req, res) => {
     ]);
 
     return res.status(200).json({
-      status: 'success',
+      success: true,
       data: {
         ...result,
         report: storageResult.stored
@@ -72,7 +75,7 @@ router.post('/scan', validateBody(SCAN_SCHEMA), async (req, res) => {
       }
     });
   } catch (error) {
-    console.error(`[Scan Error] for ${validation.sanitizedUrl}:`, error.message);
+    logger.error('[Scan] Failed', { url: validation.sanitizedUrl, error: error.message });
 
     // Provide clean, structured error responses for the frontend
     let statusCode = 500;
@@ -90,9 +93,11 @@ router.post('/scan', validateBody(SCAN_SCHEMA), async (req, res) => {
     }
 
     return res.status(statusCode).json({
-      status: 'error',
-      errorCode,
-      message: error.message || 'An unexpected error occurred while scanning the repository.'
+      success: false,
+      error: {
+        code: errorCode,
+        message: error.message || 'An unexpected error occurred while scanning the repository.'
+      }
     });
   }
 });

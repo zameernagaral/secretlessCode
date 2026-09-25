@@ -1,5 +1,7 @@
 const { createAppAuth } = require('@octokit/auth-app');
 const { Octokit } = require('@octokit/rest');
+const logger = require('../utils/logger');
+
 
 /**
  * Creates an authenticated Octokit instance for a specific GitHub App installation.
@@ -94,7 +96,7 @@ async function postPRReview(octokit, owner, repo, pullNumber, commitSha, finding
     });
   } catch (reviewErr) {
     // Fallback: if inline comments fail (e.g. file not in diff), post a plain comment
-    console.warn('[GitHub PR] Inline review failed, falling back to issue comment:', reviewErr.message);
+    logger.warn('[GitHub PR] Inline review failed, falling back to issue comment', { error: reviewErr.message });
     await octokit.rest.issues.createComment({
       owner,
       repo,

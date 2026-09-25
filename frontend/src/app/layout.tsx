@@ -9,19 +9,26 @@ export const metadata: Metadata = {
   },
 };
 
+import { ClerkProvider } from '@clerk/nextjs';
+import { cn } from "@/lib/utils";
+import { TooltipProvider } from "@/components/ui/tooltip";
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark">
-      <body className="cyber-grid antialiased selection:bg-cyan-500/20 selection:text-cyan-300">
-        <div className="fixed inset-0 pointer-events-none z-[-1] overflow-hidden">
-          <div className="absolute -top-[30%] left-[20%] w-[600px] h-[600px] rounded-full bg-cyan-500/10 blur-[130px]" />
-          <div className="absolute top-[40%] -right-[10%] w-[500px] h-[500px] rounded-full bg-indigo-600/10 blur-[140px]" />
-        </div>
-        {children}
+    <html lang="en" className={cn("dark", "font-body")}>
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+      </head>
+      <body className="bg-background text-text antialiased selection:bg-accent/30 selection:text-accent">
+        <TooltipProvider>
+          {children}
+        </TooltipProvider>
       </body>
     </html>
   );

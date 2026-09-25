@@ -8,6 +8,9 @@ import StatsCards from '../components/StatsCards';
 import ResultsTable, { Finding } from '../components/ResultsTable';
 import ErrorAlert from '../components/ErrorAlert';
 
+// UI Component Imports
+import { Skiper47 } from '@/components/ui/skiper-ui/skiper47';
+
 type ScanStatus = 'idle' | 'scanning' | 'complete' | 'error';
 
 interface ScanResultData {
@@ -39,7 +42,7 @@ export default function Home() {
   const [scanResult, setScanResult] = useState<ScanResultData | null>(null);
   const [errorInfo, setErrorInfo] = useState<{ message: string; errorCode?: string } | null>(null);
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
   const handleScan = async (url: string) => {
     setStatus('scanning');
@@ -48,7 +51,17 @@ export default function Home() {
     setScanResult(null);
 
     try {
-      const response = await fetch(`${apiUrl}/api/scan`, {
+      // ── Simulate Slow Network (Testing) ──
+      // Usage: http://localhost:3000/?delay=3000
+      if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        const delay = params.get('delay');
+        if (delay) {
+          await new Promise(r => setTimeout(r, parseInt(delay, 10)));
+        }
+      }
+
+      const response = await fetch(`${API_URL}/api/v1/scan`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -58,11 +71,11 @@ export default function Home() {
 
       const data = await response.json();
 
-      if (!response.ok || data.status === 'error') {
+      if (!response.ok || data.success === false) {
         setStatus('error');
         setErrorInfo({
-          message: data.message || 'Failed to scan the repository.',
-          errorCode: data.errorCode || 'UNKNOWN_ERROR',
+          message: data.error?.message || 'Failed to scan the repository.',
+          errorCode: data.error?.code || 'UNKNOWN_ERROR',
         });
         return;
       }
@@ -124,11 +137,11 @@ export default function Home() {
                     href={scanResult.report.presignedUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-surface-200 border border-slate-700 text-slate-300 text-sm hover:border-cyan-500 hover:text-cyan-400 transition-colors"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded bg-surface-50 border border-secondary text-text font-body text-sm hover:border-accent hover:text-accent transition-colors"
                     aria-label="Download masked scan report"
                   >
                     ↓ Download Report
-                    <span className="text-xs text-slate-500">
+                    <span className="text-xs text-muted">
                       (expires in {Math.round((scanResult.report.expiresIn ?? 3600) / 60)}min)
                     </span>
                   </a>
@@ -136,14 +149,24 @@ export default function Home() {
               )}
             </div>
           )}
+
+          {/* Decorative Security Gallery Component */}
+          {status === 'idle' && (
+            <div className="mt-12 w-full h-[350px] opacity-80">
+              <div className="text-center mb-6">
+                <h3 className="text-muted font-mono text-sm uppercase tracking-widest">Supported Engines & Integrations</h3>
+              </div>
+              <Skiper47 />
+            </div>
+          )}
         </main>
       </div>
 
       {/* Footer */}
-      <footer className="border-t border-slate-900 bg-surface-300 py-6 text-center text-xs text-slate-500 font-mono">
+      <footer className="border-t border-secondary bg-surface-100 py-6 text-center text-xs text-muted font-mono">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
           <span>Secretless Code • Ephemeral GitHub Credential Scanner</span>
-          <span className="text-slate-600">Zero persistence • Guaranteed temp sandbox purge</span>
+          <span className="text-muted">Zero persistence • Guaranteed temp sandbox purge</span>
         </div>
       </footer>
     </div>

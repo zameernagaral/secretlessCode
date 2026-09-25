@@ -3,12 +3,15 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const scanRouter = require('./routes/scan');
+const scanFileRouter = require('./routes/scanFile');
 const githubRouter = require('./routes/github');
 const adminRouter = require('./routes/admin');
+const paymentsRouter = require('./routes/payments');
 const { requireAdminAuth } = require('./middlewares/auth');
 const { sanitizeRequestBody } = require('./utils/validator');
 const { requestLogger } = require('./middlewares/requestLogger');
 const { outputSanitizer } = require('./middlewares/outputSanitizer');
+const logger = require('./utils/logger');
 const {
   globalLimiter,
   scanLimiter,
@@ -56,6 +59,10 @@ app.use(cors({
 // Assigns req.id, logs all inbound requests (no sensitive fields)
 app.use(requestLogger);
 
+// ── Stripe Payments & Webhooks ─────────────────────────────────────────────────
+// MUST be mounted before global express.json() so webhooks can read raw body
+app.use('/api/v1', paymentsRouter);
+
 // ── Body parsing & sanitization ────────────────────────────────────────────────
 app.use(express.json({ limit: '100kb' }));
 app.use(sanitizeRequestBody);   // Strip __proto__, constructor, prototype pollution
@@ -67,53 +74,77 @@ app.use(outputSanitizer);
 app.use(globalLimiter);
 
 // ── Public: Health check ────────────────────────────────────────────────────────
-app.get('/api/health', healthLimiter, (req, res) => {
+app.get('/api/v1/health', healthLimiter, (req, res) => {
   res.status(200).json({
-    status: 'healthy',
-    service: 'Secretless Code Backend',
-    timestamp: new Date().toISOString()
+    success: true,
+    data: {
+      status: 'healthy',
+      service: 'Secretless Code Backend',
+      timestamp: new Date().toISOString()
+    }
   });
 });
 
-// ── Public: Scan route ──────────────────────────────────────────────────────────
-app.use('/api/scan', scanLimiter);
-app.use('/api', scanRouter);
+// ── Public: Scan routes ──────────────────────────────────────────────────────
+app.use('/api/v1/scan', scanLimiter);
+app.use('/api/v1', scanRouter);
+app.use('/api/v1', scanFileRouter);    // POST /api/v1/scan/upload
 
 // ── Public: GitHub App webhook ──────────────────────────────────────────────────
-app.use('/api/github/webhook', webhookLimiter);
-app.use('/api', githubRouter);
+app.use('/api/v1/webhooks/github', webhookLimiter);
+app.use('/api/v1', githubRouter);
 
 // ── Protected: Admin routes ─────────────────────────────────────────────────────
 // requireAdminAuth validates Bearer ADMIN_API_KEY header before any admin handler runs
-app.use('/api/admin', requireAdminAuth, adminRouter);
+app.use('/api/v1/admin', requireAdminAuth, adminRouter);
 
 // ── 404 handler ─────────────────────────────────────────────────────────────────
 app.use((req, res) => {
   res.status(404).json({
-    status: 'error',
-    errorCode: 'NOT_FOUND',
-    message: 'Endpoint not found.'
+    success: false,
+    error: {
+      code: 'NOT_FOUND',
+      message: 'Endpoint not found.'
+    }
   });
 });
 
 // ── Centralized error handler ───────────────────────────────────────────────────
 app.use((err, req, res, next) => {
-  console.error('[Unhandled Error]', err);
-  // Never leak stack traces in production
+  // Never leak stack traces or internal paths in production
   const isProd = process.env.NODE_ENV === 'production';
+  logger.error('[Server] Unhandled error', {
+    reqId: req.id,
+    method: req.method,
+    path: req.path,
+    error: isProd ? 'Internal server error' : err.message
+  });
   res.status(500).json({
-    status: 'error',
-    errorCode: 'INTERNAL_SERVER_ERROR',
-    message: isProd ? 'An internal server error occurred.' : err.message
+    success: false,
+    error: {
+      code: 'INTERNAL_SERVER_ERROR',
+      message: 'An internal server error occurred.'
+    }
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`🛡️  Secretless Code Backend running on http://localhost:${PORT}`);
-  console.log(`   Health:          GET  http://localhost:${PORT}/api/health`);
-  console.log(`   Scan endpoint:   POST http://localhost:${PORT}/api/scan`);
-  console.log(`   GitHub Webhook:  POST http://localhost:${PORT}/api/github/webhook`);
-  console.log(`   Admin routes:    /api/admin/* (requires Authorization: Bearer <ADMIN_API_KEY>)`);
-});
+// Start server only when run directly — tests require the app and control the port themselves
+if (require.main === module) {
+  app.listen(PORT, () => {
+  logger.info('[Server] Started', {
+    port: PORT,
+    endpoints: [
+      `GET  /api/v1/health`,
+      `POST /api/v1/scan`,
+      `POST /api/v1/scan/upload (max ${process.env.MAX_UPLOAD_SIZE_MB || 20}MB)`,
+      `POST /api/v1/webhooks/github`,
+      `POST /api/v1/projects`,
+      `POST /api/v1/payments/create-checkout-session`,
+      `POST /api/v1/webhooks/stripe`,
+      `GET  /api/v1/admin/* (Bearer <ADMIN_API_KEY>)`
+    ]
+  });
+  });
+}
 
 module.exports = app;

@@ -1,3 +1,4 @@
+const logger = require('./../utils/logger');
 /**
  * Engine Router — Secretless Code Scanning Engine Selector
  *
@@ -56,7 +57,7 @@ async function runScan(targetDir, reportPath) {
         const findings = await gitleaks.scan(targetDir, reportPath);
         return { findings, engineUsed: 'gitleaks' };
       }
-      console.warn('[Engine] Gitleaks not found — falling back to builtin scanner.');
+      logger.warn('[Engine] Gitleaks not found — falling back to builtin scanner.');
       return { findings: builtin.scan(targetDir), engineUsed: 'builtin-fallback' };
     }
 
@@ -66,7 +67,7 @@ async function runScan(targetDir, reportPath) {
         const findings = await truffleHog.scan(targetDir);
         return { findings, engineUsed: 'trufflehog' };
       }
-      console.warn('[Engine] TruffleHog not found — falling back to builtin scanner.');
+      logger.warn('[Engine] TruffleHog not found — falling back to builtin scanner.');
       return { findings: builtin.scan(targetDir), engineUsed: 'builtin-fallback' };
     }
 
@@ -81,7 +82,7 @@ async function runScan(targetDir, reportPath) {
           results.push(...findings);
           enginesUsed.push('gitleaks');
         } catch (err) {
-          console.warn('[Engine] Gitleaks error in "both" mode:', err.message);
+          logger.warn('[Engine] Gitleaks error in "both" mode:', err.message);
         }
       }
 
@@ -91,12 +92,12 @@ async function runScan(targetDir, reportPath) {
           results.push(...findings);
           enginesUsed.push('trufflehog');
         } catch (err) {
-          console.warn('[Engine] TruffleHog error in "both" mode:', err.message);
+          logger.warn('[Engine] TruffleHog error in "both" mode:', err.message);
         }
       }
 
       if (enginesUsed.length === 0) {
-        console.warn('[Engine] Neither Gitleaks nor TruffleHog available — using builtin.');
+        logger.warn('[Engine] Neither Gitleaks nor TruffleHog available — using builtin.');
         return { findings: builtin.scan(targetDir), engineUsed: 'builtin-fallback' };
       }
 
@@ -116,7 +117,7 @@ async function runScan(targetDir, reportPath) {
           const findings = await gitleaks.scan(targetDir, reportPath);
           return { findings, engineUsed: 'gitleaks' };
         } catch (err) {
-          console.warn('[Engine] Gitleaks failed, trying TruffleHog:', err.message);
+          logger.warn('[Engine] Gitleaks failed, trying TruffleHog:', err.message);
         }
       }
 
@@ -126,12 +127,12 @@ async function runScan(targetDir, reportPath) {
           const findings = await truffleHog.scan(targetDir);
           return { findings, engineUsed: 'trufflehog' };
         } catch (err) {
-          console.warn('[Engine] TruffleHog failed, falling back to builtin:', err.message);
+          logger.warn('[Engine] TruffleHog failed, falling back to builtin:', err.message);
         }
       }
 
       // 3rd priority: Built-in regex scanner (always available, no binary needed)
-      console.warn('[Engine] No CLI scanner available — using built-in heuristic scanner.');
+      logger.warn('[Engine] No CLI scanner available — using built-in heuristic scanner.');
       return { findings: builtin.scan(targetDir), engineUsed: 'builtin' };
     }
   }

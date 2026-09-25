@@ -1,7 +1,8 @@
 'use client';
 
 import React from 'react';
-import { AlertOctagon, AlertTriangle, ShieldAlert, Timer, Database } from 'lucide-react';
+import { AlertOctagon, AlertTriangle, ShieldAlert, Timer } from 'lucide-react';
+import NumberFlow from '@number-flow/react';
 
 interface StatsProps {
   summary: {
@@ -18,74 +19,74 @@ export default function StatsCards({ summary, durationMs, repoSizeMB }: StatsPro
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
       {/* Total Leaks */}
-      <div className="glass-panel rounded-2xl p-5 border border-slate-800/80 relative overflow-hidden transition-all hover:border-slate-700">
-        <div className="flex items-center justify-between text-slate-400 mb-2">
+      <div className="glass-panel rounded border border-secondary p-5 transition-colors hover:border-primary">
+        <div className="flex items-center justify-between text-muted mb-2">
           <span className="text-xs uppercase tracking-wider font-mono font-medium">Total Secrets Found</span>
-          <AlertOctagon className={`w-4 h-4 ${summary.total > 0 ? 'text-rose-400' : 'text-emerald-400'}`} />
+          <AlertOctagon className={`w-4 h-4 ${summary.total > 0 ? 'text-[#C13B2E]' : 'text-muted'}`} />
         </div>
         <div className="flex items-baseline space-x-2">
-          <span className="text-3xl font-bold font-mono text-white">
-            {summary.total}
+          <span className="text-3xl font-bold font-mono text-text">
+            <NumberFlow value={summary.total} />
           </span>
-          <span className="text-xs text-slate-400">
+          <span className="text-xs text-muted">
             {summary.total === 0 ? 'clean' : 'detected'}
           </span>
         </div>
-        <div className={`mt-3 h-1 w-full rounded-full ${summary.total > 0 ? 'bg-rose-500/20' : 'bg-emerald-500/20'}`}>
+        <div className={`mt-3 h-1 w-full rounded bg-surface-50`}>
           <div 
-            className={`h-full rounded-full ${summary.total > 0 ? 'bg-rose-500' : 'bg-emerald-500'}`}
-            style={{ width: summary.total > 0 ? '100%' : '100%' }}
+            className={`h-full rounded ${summary.total > 0 ? 'bg-[#C13B2E]' : 'bg-secondary'}`}
+            style={{ width: '100%' }}
           />
         </div>
       </div>
 
       {/* Critical */}
-      <div className="glass-panel rounded-2xl p-5 border border-rose-900/30 bg-rose-950/10 relative overflow-hidden transition-all hover:border-rose-800/50">
-        <div className="flex items-center justify-between text-rose-300 mb-2">
+      <div className="glass-panel rounded p-5 border border-secondary transition-colors hover:border-[#C13B2E]">
+        <div className="flex items-center justify-between text-[#C13B2E] mb-2">
           <span className="text-xs uppercase tracking-wider font-mono font-medium">Critical</span>
-          <ShieldAlert className="w-4 h-4 text-rose-400" />
+          <ShieldAlert className="w-4 h-4 text-[#C13B2E]" />
         </div>
         <div className="flex items-baseline space-x-2">
-          <span className="text-3xl font-bold font-mono text-rose-400">
+          <span className="text-3xl font-bold font-mono text-[#C13B2E]">
             {summary.critical}
           </span>
-          <span className="text-xs text-rose-300/70">AWS, Keys, DB</span>
+          <span className="text-xs text-muted">AWS, Keys, DB</span>
         </div>
-        <p className="text-[11px] text-slate-400 mt-2 truncate">
+        <p className="text-[11px] text-muted mt-2 truncate font-body">
           Immediate credential revocation recommended
         </p>
       </div>
 
       {/* High */}
-      <div className="glass-panel rounded-2xl p-5 border border-amber-900/30 bg-amber-950/10 relative overflow-hidden transition-all hover:border-amber-800/50">
-        <div className="flex items-center justify-between text-amber-300 mb-2">
+      <div className="glass-panel rounded p-5 border border-secondary transition-colors hover:border-[#D97C2B]">
+        <div className="flex items-center justify-between text-[#D97C2B] mb-2">
           <span className="text-xs uppercase tracking-wider font-mono font-medium">High</span>
-          <AlertTriangle className="w-4 h-4 text-amber-400" />
+          <AlertTriangle className="w-4 h-4 text-[#D97C2B]" />
         </div>
         <div className="flex items-baseline space-x-2">
-          <span className="text-3xl font-bold font-mono text-amber-400">
+          <span className="text-3xl font-bold font-mono text-[#D97C2B]">
             {summary.high}
           </span>
-          <span className="text-xs text-amber-300/70">API Keys & Tokens</span>
+          <span className="text-xs text-muted">API Keys & Tokens</span>
         </div>
-        <p className="text-[11px] text-slate-400 mt-2 truncate">
+        <p className="text-[11px] text-muted mt-2 truncate font-body">
           Write-capable or third-party service tokens
         </p>
       </div>
 
       {/* Medium & Meta */}
-      <div className="glass-panel rounded-2xl p-5 border border-slate-800/80 relative overflow-hidden transition-all hover:border-slate-700">
-        <div className="flex items-center justify-between text-slate-400 mb-2">
+      <div className="glass-panel rounded p-5 border border-secondary transition-colors hover:border-[#C9A227]">
+        <div className="flex items-center justify-between text-[#C9A227] mb-2">
           <span className="text-xs uppercase tracking-wider font-mono font-medium">Medium / Info</span>
-          <Timer className="w-4 h-4 text-cyan-400" />
+          <Timer className="w-4 h-4 text-[#C9A227]" />
         </div>
         <div className="flex items-baseline space-x-2">
-          <span className="text-3xl font-bold font-mono text-cyan-400">
+          <span className="text-3xl font-bold font-mono text-[#C9A227]">
             {summary.medium}
           </span>
-          <span className="text-xs text-slate-400">items</span>
+          <span className="text-xs text-muted">items</span>
         </div>
-        <div className="flex items-center space-x-2 text-[11px] text-slate-400 mt-2">
+        <div className="flex items-center space-x-2 text-[11px] text-muted mt-2 font-mono">
           {durationMs && <span>⚡ {durationMs}ms</span>}
           {repoSizeMB !== undefined && (
             <>

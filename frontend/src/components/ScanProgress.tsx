@@ -23,31 +23,29 @@ export default function ScanProgress({ repoUrl }: { repoUrl: string }) {
   }, []);
 
   return (
-    <div className="glass-panel rounded-2xl p-6 sm:p-8 border border-cyan-500/20 bg-surface-100/80 mb-8 relative overflow-hidden shadow-2xl shadow-cyan-950/30">
-      {/* Animated Scan Line */}
-      <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent animate-pulse" />
+    <div className="glass-panel rounded p-6 sm:p-8 border border-accent mb-8 relative overflow-hidden">
       
       <div className="flex flex-col sm:flex-row items-center sm:items-start space-y-4 sm:space-y-0 sm:space-x-6">
         {/* Animated Scanner Radar */}
         <div className="relative flex-shrink-0">
-          <div className="w-16 h-16 rounded-2xl bg-cyan-950/80 border border-cyan-500/40 flex items-center justify-center relative">
-            <Loader2 className="w-8 h-8 text-cyan-400 animate-spin" />
-            <div className="absolute inset-0 rounded-2xl ring-2 ring-cyan-500/20 animate-ping" />
+          <div className="w-16 h-16 rounded bg-surface-50 border border-accent flex items-center justify-center relative">
+            <Loader2 className="w-8 h-8 text-accent animate-spin" />
+            <div className="absolute inset-0 rounded border border-accent animate-ping" />
           </div>
         </div>
 
         {/* Status description */}
         <div className="flex-1 text-center sm:text-left">
           <div className="flex items-center justify-center sm:justify-start space-x-2">
-            <span className="text-xs font-mono uppercase tracking-wider text-cyan-400 font-semibold">
+            <span className="text-xs font-mono uppercase tracking-wider text-accent font-semibold">
               Live Audit In Progress
             </span>
-            <span className="inline-block w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
+            <span className="inline-block w-2 h-2 rounded bg-accent animate-ping" />
           </div>
-          <h3 className="text-lg font-semibold text-white mt-1 break-all">
+          <h3 className="text-lg font-heading font-semibold text-text mt-1 break-all">
             Auditing {repoUrl}
           </h3>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-muted mt-1 font-body">
             Running isolated security inspection. Repository is deleted immediately after scanning.
           </p>
 
@@ -63,15 +61,15 @@ export default function ScanProgress({ repoUrl }: { repoUrl: string }) {
                   key={idx}
                   className={`flex items-center space-x-3 text-xs font-mono transition-all duration-300 ${
                     isPast
-                      ? 'text-emerald-400'
+                      ? 'text-primary'
                       : isCurrent
-                      ? 'text-cyan-300 font-semibold translate-x-1'
-                      : 'text-slate-600'
+                      ? 'text-accent font-semibold translate-x-1'
+                      : 'text-secondary'
                   }`}
                 >
                   <Icon className={`w-3.5 h-3.5 flex-shrink-0 ${isCurrent ? 'animate-bounce' : ''}`} />
                   <span>{step.label}</span>
-                  {isPast && <span className="text-[10px] text-emerald-500">✓ done</span>}
+                  {isPast && <span className="text-[10px] text-primary">✓ done</span>}
                 </div>
               );
             })}

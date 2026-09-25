@@ -1,3 +1,4 @@
+const logger = require('./../utils/logger');
 /**
  * Slack & Discord Webhook Notification Service
  *
@@ -253,12 +254,12 @@ async function sendScanNotification(params) {
       postJSON(slackUrl, slackPayload)
         .then(r => {
           if (r.statusCode !== 200) {
-            console.warn(`[Notifier] Slack returned non-200: ${r.statusCode} — ${r.body}`);
+            logger.warn('[Notifier] Slack non-200', { status: r.statusCode });
           } else {
-            console.log(`[Notifier] ✅ Slack notification sent for ${params.repo}`);
+            logger.info('[Notifier] Slack notification sent', { repo: params.repo });
           }
         })
-        .catch(err => console.error('[Notifier] Slack error:', err.message))
+        .catch(err => logger.error('[Notifier] Slack error', { error: err.message }))
     );
   }
 
@@ -269,14 +270,13 @@ async function sendScanNotification(params) {
     promises.push(
       postJSON(discordFinalUrl, discordPayload)
         .then(r => {
-          // Discord returns 204 No Content on success
           if (r.statusCode !== 200 && r.statusCode !== 204) {
-            console.warn(`[Notifier] Discord returned non-200/204: ${r.statusCode} — ${r.body}`);
+            logger.warn('[Notifier] Discord non-200/204', { status: r.statusCode });
           } else {
-            console.log(`[Notifier] ✅ Discord notification sent for ${params.repo}`);
+            logger.info('[Notifier] Discord notification sent', { repo: params.repo });
           }
         })
-        .catch(err => console.error('[Notifier] Discord error:', err.message))
+        .catch(err => logger.error('[Notifier] Discord error', { error: err.message }))
     );
   }
 
