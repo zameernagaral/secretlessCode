@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const scanRouter = require('./routes/scan');
+const githubRouter = require('./routes/github');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -28,6 +29,9 @@ app.get('/api/health', (req, res) => {
 // Scan API routes
 app.use('/api', scanRouter);
 
+// GitHub App webhook routes (uses express.raw() internally for HMAC verification)
+app.use('/api', githubRouter);
+
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({
@@ -50,7 +54,8 @@ app.use((err, req, res, next) => {
 app.listen(PORT, () => {
   console.log(`🛡️  Secretless Code Backend running on http://localhost:${PORT}`);
   console.log(`   Health check: http://localhost:${PORT}/api/health`);
-  console.log(`   Scan endpoint: POST http://localhost:${PORT}/api/scan`);
+  console.log(`   Scan endpoint:    POST http://localhost:${PORT}/api/scan`);
+  console.log(`   GitHub Webhook:   POST http://localhost:${PORT}/api/github/webhook`);
 });
 
 module.exports = app;
