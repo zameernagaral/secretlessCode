@@ -1,6 +1,7 @@
 const express = require('express');
 const { validateGitHubUrl } = require('../utils/validator');
 const { scanRepository } = require('../services/scanner');
+const { sendScanNotification } = require('../services/notifier');
 
 const router = express.Router();
 
@@ -24,6 +25,15 @@ router.post('/scan', async (req, res) => {
   try {
     // 2. Perform isolated clone & scan
     const result = await scanRepository(validation.sanitizedUrl, validation.repo);
+
+    // 3. Fire-and-forget Slack/Discord notification (never blocks response)
+    sendScanNotification({
+      repo: validation.repo,
+      source: 'Manual Scan (Dashboard)',
+      summary: result.summary,
+      findings: result.findings,
+      scanDurationMs: result.scanDurationMs
+    }).catch(() => {});
 
     return res.status(200).json({
       status: 'success',

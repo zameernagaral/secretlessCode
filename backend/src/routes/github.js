@@ -2,6 +2,7 @@ const express = require('express');
 const { verifyWebhookSignature } = require('../utils/webhookVerify');
 const { getInstallationOctokit, postPRReview } = require('../services/githubApp');
 const { scanPRBranch } = require('../services/prScanner');
+const { sendScanNotification } = require('../services/notifier');
 
 const router = express.Router();
 
@@ -113,6 +114,15 @@ router.post(
           : '✅ No secrets detected',
         'secretless-code/scan'
       );
+
+      // Fire-and-forget Slack/Discord notification
+      sendScanNotification({
+        repo: `${owner}/${repoName}`,
+        source: `GitHub PR #${prNumber} (\`${headRef}\`)`,
+        summary,
+        findings,
+        scanDurationMs
+      }).catch(() => {});
 
       console.log(
         `[PR Scanner] ✅ Done: ${owner}/${repoName} PR #${prNumber} — ${summary.total} findings in ${scanDurationMs}ms via ${engine}`
