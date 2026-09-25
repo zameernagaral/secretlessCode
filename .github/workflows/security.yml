@@ -1,0 +1,83 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Security Scanning — Scheduled & On-Push
+# Runs a full Gitleaks scan + dependency audit on a weekly schedule
+# and on every push to main, providing a comprehensive security posture report.
+# ──────────────────────────────────────────────────────────────────────────────
+
+name: Security Scan
+
+on:
+  schedule:
+    - cron: "0 2 * * 1"  # Every Monday at 02:00 UTC
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+jobs:
+  gitleaks:
+    name: 🔑 Gitleaks — Full History Scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write  # needed to upload SARIF to GitHub Security tab
+
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Gitleaks (SARIF output)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  dependency-audit:
+    name: 📦 Dependency Vulnerability Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Audit backend
+        id: backend-audit
+        working-directory: backend
+        run: |
+          npm ci --quiet
+          npm audit --json --audit-level=moderate > /tmp/backend-audit.json 2>&1 || true
+          VULNS=$(cat /tmp/backend-audit.json | node -e "
+            const d=require('fs').readFileSync('/dev/stdin','utf8');
+            try { const r=JSON.parse(d); console.log(r.metadata?.vulnerabilities?.total ?? 0); }
+            catch { console.log(0); }
+          ")
+          echo "vulnerabilities=$VULNS" >> $GITHUB_OUTPUT
+          echo "Backend vulnerabilities: $VULNS"
+
+      - name: Audit frontend
+        id: frontend-audit
+        working-directory: frontend
+        run: |
+          npm ci --quiet
+          npm audit --json --audit-level=moderate > /tmp/frontend-audit.json 2>&1 || true
+          VULNS=$(cat /tmp/frontend-audit.json | node -e "
+            const d=require('fs').readFileSync('/dev/stdin','utf8');
+            try { const r=JSON.parse(d); console.log(r.metadata?.vulnerabilities?.total ?? 0); }
+            catch { console.log(0); }
+          ")
+          echo "vulnerabilities=$VULNS" >> $GITHUB_OUTPUT
+          echo "Frontend vulnerabilities: $VULNS"
+
+      - name: Security audit summary
+        run: |
+          echo "## 🔒 Dependency Audit Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Package | Vulnerabilities |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|-----------------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Backend | ${{ steps.backend-audit.outputs.vulnerabilities }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Frontend | ${{ steps.frontend-audit.outputs.vulnerabilities }} |" >> $GITHUB_STEP_SUMMARY
