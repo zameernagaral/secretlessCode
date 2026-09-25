@@ -1,0 +1,169 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  Secretless Code Backend — AWS ECS Fargate Task Definition + Service
+  Runs the backend Docker image pulled from GHCR on a Fargate cluster.
+  Suitable for production workloads needing auto-scaling.
+
+Parameters:
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC to deploy into
+
+  SubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: At least 2 public subnets in different AZs
+
+  ImageUri:
+    Type: String
+    Description: Docker image URI (e.g. ghcr.io/zameernagaral/secretlessCode/backend:latest)
+    Default: ghcr.io/zameernagaral/secretlessCode/backend:latest
+
+  CorsOrigin:
+    Type: String
+    Default: "*"
+
+Resources:
+  # ── ECS Cluster ─────────────────────────────────────────────────────────────
+  Cluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: secretless-code
+      CapacityProviders: [FARGATE, FARGATE_SPOT]
+      DefaultCapacityProviderStrategy:
+        - CapacityProvider: FARGATE
+          Weight: 1
+
+  # ── CloudWatch Logs ──────────────────────────────────────────────────────────
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /ecs/secretless-code-backend
+      RetentionInDays: 14
+
+  # ── IAM Task Execution Role ───────────────────────────────────────────────────
+  TaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: secretless-code-ecs-exec-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+
+  # ── Task Definition ───────────────────────────────────────────────────────────
+  TaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: secretless-code-backend
+      Cpu: '512'
+      Memory: '1024'
+      NetworkMode: awsvpc
+      RequiresCompatibilities: [FARGATE]
+      ExecutionRoleArn: !GetAtt TaskExecutionRole.Arn
+      ContainerDefinitions:
+        - Name: backend
+          Image: !Ref ImageUri
+          PortMappings:
+            - ContainerPort: 4000
+              Protocol: tcp
+          Environment:
+            - Name: PORT
+              Value: '4000'
+            - Name: NODE_ENV
+              Value: production
+            - Name: CORS_ORIGIN
+              Value: !Ref CorsOrigin
+            - Name: SCAN_ENGINE
+              Value: auto
+            - Name: CLONE_TIMEOUT_MS
+              Value: '25000'
+            - Name: SCAN_TIMEOUT_MS
+              Value: '25000'
+            - Name: MAX_REPO_SIZE_MB
+              Value: '60'
+            - Name: RATE_GLOBAL_MAX
+              Value: '200'
+            - Name: RATE_SCAN_MAX
+              Value: '5'
+            - Name: RATE_SCAN_WINDOW_MS
+              Value: '3600000'
+            - Name: STORAGE_PROVIDER
+              Value: s3
+          # Secrets from AWS Secrets Manager (never hardcode in task definition)
+          Secrets:
+            - Name: GITHUB_APP_ID
+              ValueFrom: arn:aws:secretsmanager:REGION:ACCOUNT:secret:secretless/GITHUB_APP_ID
+            - Name: GITHUB_APP_PRIVATE_KEY
+              ValueFrom: arn:aws:secretsmanager:REGION:ACCOUNT:secret:secretless/GITHUB_APP_PRIVATE_KEY
+            - Name: GITHUB_WEBHOOK_SECRET
+              ValueFrom: arn:aws:secretsmanager:REGION:ACCOUNT:secret:secretless/GITHUB_WEBHOOK_SECRET
+            - Name: STORAGE_ACCESS_KEY_ID
+              ValueFrom: arn:aws:secretsmanager:REGION:ACCOUNT:secret:secretless/STORAGE_ACCESS_KEY_ID
+            - Name: STORAGE_SECRET_KEY
+              ValueFrom: arn:aws:secretsmanager:REGION:ACCOUNT:secret:secretless/STORAGE_SECRET_KEY
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: /ecs/secretless-code-backend
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: ecs
+          HealthCheck:
+            Command: ["CMD-SHELL", "wget -qO- http://localhost:4000/api/health || exit 1"]
+            Interval: 30
+            Timeout: 10
+            Retries: 3
+            StartPeriod: 15
+
+  # ── Security Group ────────────────────────────────────────────────────────────
+  BackendSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Secretless Code Backend
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 4000
+          ToPort: 4000
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+
+  # ── ECS Service ───────────────────────────────────────────────────────────────
+  Service:
+    Type: AWS::ECS::Service
+    Properties:
+      ServiceName: secretless-code-backend
+      Cluster: !Ref Cluster
+      TaskDefinition: !Ref TaskDefinition
+      DesiredCount: 1
+      LaunchType: FARGATE
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          Subnets: !Ref SubnetIds
+          SecurityGroups: [!Ref BackendSecurityGroup]
+      DeploymentConfiguration:
+        MaximumPercent: 200
+        MinimumHealthyPercent: 100
+        DeploymentCircuitBreaker:
+          Enable: true
+          Rollback: true
+
+Outputs:
+  ClusterName:
+    Value: !Ref Cluster
+    Description: ECS Cluster name
+
+  TaskDefinitionArn:
+    Value: !Ref TaskDefinition
+    Description: Task Definition ARN
+
+  ServiceName:
+    Value: !GetAtt Service.Name
+    Description: ECS Service name

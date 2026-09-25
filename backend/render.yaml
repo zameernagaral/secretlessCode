@@ -1,20 +1,79 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Render — Infrastructure as Code (render.yaml)
+# Deploys the backend as a Dockerized web service.
+#
+# Docs: https://render.com/docs/infrastructure-as-code
+# ──────────────────────────────────────────────────────────────────────────────
+
 services:
   - type: web
     name: secretless-code-backend
     env: docker
     dockerfilePath: backend/Dockerfile
     dockerContext: backend
-    plan: free
-    region: oregon
+    plan: starter            # starter = $7/mo, always-on (free tier spins down after 15min)
+    region: singapore        # closest to India — also available: oregon, frankfurt, ohio
     healthCheckPath: /api/health
+    autoDeploy: true         # auto-redeploy on push to main branch
+
     envVars:
+      # ── Core ────────────────────────────────────────────────────────────────
       - key: PORT
         value: 4000
+      - key: NODE_ENV
+        value: production
       - key: CORS_ORIGIN
-        value: "*"
+        fromService:
+          name: secretless-code-frontend
+          type: web
+          property: host
+          # Fallback if frontend service doesn't exist yet:
+          # value: "https://your-frontend.vercel.app"
+
+      # ── Scan engine ─────────────────────────────────────────────────────────
+      - key: SCAN_ENGINE
+        value: auto
       - key: CLONE_TIMEOUT_MS
         value: 25000
       - key: SCAN_TIMEOUT_MS
         value: 25000
       - key: MAX_REPO_SIZE_MB
         value: 60
+
+      # ── Rate limiting ────────────────────────────────────────────────────────
+      - key: RATE_SCAN_MAX
+        value: 5
+      - key: RATE_SCAN_WINDOW_MS
+        value: 3600000
+      - key: RATE_GLOBAL_MAX
+        value: 200
+
+      # ── GitHub App (set via Render dashboard for security) ──────────────────
+      - key: GITHUB_APP_ID
+        sync: false
+      - key: GITHUB_APP_PRIVATE_KEY
+        sync: false
+      - key: GITHUB_WEBHOOK_SECRET
+        sync: false
+
+      # ── Slack / Discord ──────────────────────────────────────────────────────
+      - key: SLACK_WEBHOOK_URL
+        sync: false
+      - key: DISCORD_WEBHOOK_URL
+        sync: false
+
+      # ── Cloud Storage ────────────────────────────────────────────────────────
+      - key: STORAGE_PROVIDER
+        value: none
+      - key: STORAGE_BUCKET
+        sync: false
+      - key: STORAGE_ACCESS_KEY_ID
+        sync: false
+      - key: STORAGE_SECRET_KEY
+        sync: false
+      - key: STORAGE_ENDPOINT
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false

@@ -1,0 +1,24 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Railway — railway.toml
+# Deploys the backend Docker image to Railway.
+#
+# Docs: https://docs.railway.app/reference/config-as-code
+# CLI:  npm install -g @railway/cli && railway login && railway up
+# ──────────────────────────────────────────────────────────────────────────────
+
+[build]
+  builder = "DOCKERFILE"
+  dockerfilePath = "Dockerfile"      # relative to the service root (backend/)
+  buildCommand = ""                  # handled by Dockerfile
+
+[deploy]
+  startCommand = "node src/server.js"
+  healthcheckPath = "/api/health"
+  healthcheckTimeout = 30
+  restartPolicyType = "ON_FAILURE"
+  restartPolicyMaxRetries = 3
+  numReplicas = 1
+
+  # Railway auto-injects PORT — our server reads process.env.PORT
+  # Set all other env vars via: railway variables set KEY=VALUE
+  # or in the Railway dashboard → Service → Variables

@@ -1,0 +1,73 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Fly.io — fly.toml
+# Deploys the backend Docker image to Fly.io (global edge deployment).
+#
+# Docs: https://fly.io/docs/reference/configuration/
+# CLI:  brew install flyctl && fly auth login && fly launch
+#       fly deploy  (subsequent deploys)
+# ──────────────────────────────────────────────────────────────────────────────
+
+app = "secretless-code-backend"
+primary_region = "sin"     # Singapore — closest to India
+                           # Other options: bom (Mumbai, if available), lax, fra
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "8080"            # Fly.io expects apps to listen on 8080 internally
+  NODE_ENV = "production"
+  SCAN_ENGINE = "auto"
+  CLONE_TIMEOUT_MS = "25000"
+  SCAN_TIMEOUT_MS = "25000"
+  MAX_REPO_SIZE_MB = "60"
+  RATE_GLOBAL_MAX = "200"
+  RATE_SCAN_MAX = "5"
+  RATE_SCAN_WINDOW_MS = "3600000"
+
+# Secrets (never put in fly.toml — set via CLI):
+#   fly secrets set GITHUB_APP_ID=xxx
+#   fly secrets set GITHUB_APP_PRIVATE_KEY="$(cat private-key.pem)"
+#   fly secrets set GITHUB_WEBHOOK_SECRET=xxx
+#   fly secrets set SLACK_WEBHOOK_URL=xxx
+#   fly secrets set DISCORD_WEBHOOK_URL=xxx
+#   fly secrets set STORAGE_PROVIDER=r2
+#   fly secrets set STORAGE_ACCESS_KEY_ID=xxx
+#   fly secrets set STORAGE_SECRET_KEY=xxx
+
+[[services]]
+  internal_port = 8080
+  protocol = "tcp"
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 1  # keep 1 warm instance (prevents cold start)
+
+  [[services.ports]]
+    port = 80
+    handlers = ["http"]
+    force_https = true
+
+  [[services.ports]]
+    port = 443
+    handlers = ["tls", "http"]
+
+  [services.concurrency]
+    type = "requests"
+    hard_limit = 100
+    soft_limit = 80
+
+  [[services.http_checks]]
+    interval = 30000        # ms
+    timeout = 10000         # ms
+    grace_period = "15s"
+    method = "GET"
+    path = "/api/health"
+    protocol = "http"
+    tls_skip_verify = false
+    [services.http_checks.headers]
+      X-Internal-Health = "1"
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory_mb = 512          # increase to 1024 for heavy scan workloads

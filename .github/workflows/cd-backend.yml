@@ -1,11 +1,24 @@
 # ──────────────────────────────────────────────────────────────────────────────
-# CD Pipeline — Backend (Express + Gitleaks)
-# Triggers: push to main only (after CI passes)
+# CD Pipeline — Backend (All Platforms)
+# Triggers: push to main (backend changes) or manual dispatch
 #
 # Flow:
-#   1. Build multi-stage Docker image (Go Gitleaks + Node.js)
-#   2. Push to GitHub Container Registry (ghcr.io)
-#   3. Trigger Render redeploy via Deploy Hook URL
+#   1. Build Docker image, push to GHCR
+#   2. Deploy to the platform selected by DEPLOY_TARGET secret:
+#      "render"   → trigger Render Deploy Hook  [default]
+#      "railway"  → deploy via Railway CLI
+#      "fly"      → deploy via flyctl
+#      "ecs"      → update AWS ECS task definition and force new deployment
+#
+# Required secrets (always):
+#   (none extra — GITHUB_TOKEN handles GHCR push)
+#
+# Required secrets (per platform):
+#   Render:   RENDER_DEPLOY_HOOK_URL
+#   Railway:  RAILWAY_TOKEN, RAILWAY_SERVICE_ID
+#   Fly.io:   FLY_API_TOKEN
+#   AWS ECS:  AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION,
+#             ECS_CLUSTER, ECS_SERVICE, ECS_TASK_DEFINITION_FAMILY
 # ──────────────────────────────────────────────────────────────────────────────
 
 name: CD — Backend Deploy
@@ -16,28 +29,41 @@ on:
     paths:
       - "backend/**"
       - ".github/workflows/cd-backend.yml"
-
-  workflow_dispatch:  # Allow manual trigger from Actions tab
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: "Override deploy platform (render/railway/fly/ecs)"
+        required: false
+        default: ""
 
 concurrency:
   group: cd-backend
-  cancel-in-progress: false  # never cancel an in-flight backend deploy
+  cancel-in-progress: false
 
 jobs:
+  # ── 1. Build & Push Docker image to GHCR ─────────────────────────────────
   build-and-push:
-    name: 🐳 Build & Push Backend Image
+    name: 🐳 Build & Push to GHCR
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write  # needed to push to ghcr.io
+      packages: write
 
     outputs:
       image-tag: ${{ steps.meta.outputs.tags }}
       image-digest: ${{ steps.build.outputs.digest }}
+      short-sha: ${{ steps.sha.outputs.short }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Get short SHA
+        id: sha
+        run: echo "short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Set up QEMU (multi-arch support)
+        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -49,7 +75,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract Docker metadata (tags & labels)
+      - name: Extract Docker metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
@@ -59,52 +85,180 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
             type=semver,pattern={{version}}
 
-      - name: Build & Push backend image
+      - name: Build & Push (amd64 + arm64)
         id: build
         uses: docker/build-push-action@v5
         with:
           context: ./backend
           file: ./backend/Dockerfile
           push: true
+          platforms: linux/amd64,linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Log pushed image digest
-        run: echo "Pushed image digest → ${{ steps.build.outputs.digest }}"
-
+  # ── 2a. Deploy to Render ─────────────────────────────────────────────────
   deploy-render:
-    name: 🚀 Deploy to Render
+    name: 🚀 Deploy → Render
     runs-on: ubuntu-latest
     needs: build-and-push
-    environment: production  # requires manual approval if configured in repo settings
+    environment: production
+    if: |
+      (github.event.inputs.platform == 'render' || github.event.inputs.platform == '') &&
+      vars.DEPLOY_TARGET == 'render' || vars.DEPLOY_TARGET == ''
 
     steps:
       - name: Trigger Render Deploy Hook
-        # Set RENDER_DEPLOY_HOOK_URL in: Settings → Secrets → Actions
-        # Get it from: Render dashboard → Your service → Settings → Deploy Hook
-        if: ${{ secrets.RENDER_DEPLOY_HOOK_URL != '' }}
+        if: secrets.RENDER_DEPLOY_HOOK_URL != ''
         run: |
-          echo "Triggering Render deployment..."
-          curl -s -f -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}" \
-            -H "Content-Type: application/json" \
-            --max-time 30 \
-            || echo "Warning: Render deploy hook returned non-2xx. Check Render dashboard."
+          echo "🚀 Triggering Render deploy..."
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}" \
+            --max-time 30)
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | head -1)
+          echo "HTTP $HTTP_CODE: $BODY"
+          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
+            echo "❌ Render deploy hook failed with HTTP $HTTP_CODE"
+            exit 1
+          fi
+          echo "✅ Render deployment triggered successfully"
 
-      - name: Skip deploy (no hook configured)
-        if: ${{ secrets.RENDER_DEPLOY_HOOK_URL == '' }}
+      - name: Render deploy not configured
+        if: secrets.RENDER_DEPLOY_HOOK_URL == ''
         run: |
-          echo "ℹ️ RENDER_DEPLOY_HOOK_URL secret not set."
-          echo "   Add it in: GitHub repo → Settings → Secrets → Actions → RENDER_DEPLOY_HOOK_URL"
+          echo "⚠️  RENDER_DEPLOY_HOOK_URL not set. Skipping Render deploy."
+          echo "   Get it from: Render Dashboard → Service → Settings → Deploy Hook"
 
-      - name: Deployment summary
+      - name: Summary
         run: |
-          echo "## 🚀 Backend Deployment" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Key | Value |" >> $GITHUB_STEP_SUMMARY
-          echo "|-----|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Image | \`ghcr.io/${{ github.repository }}/backend:latest\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Digest | \`${{ needs.build-and-push.outputs.image-digest }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Triggered by | @${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
+          echo "## 🚀 Render Deployment" >> $GITHUB_STEP_SUMMARY
+          echo "| Image | \`ghcr.io/${{ github.repository }}/backend:sha-${{ needs.build-and-push.outputs.short-sha }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| Commit | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
+
+  # ── 2b. Deploy to Railway ─────────────────────────────────────────────────
+  deploy-railway:
+    name: 🚂 Deploy → Railway
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    environment: production
+    if: |
+      github.event.inputs.platform == 'railway' ||
+      vars.DEPLOY_TARGET == 'railway'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Railway CLI
+        run: npm install --global @railway/cli
+
+      - name: Deploy to Railway
+        run: |
+          railway up \
+            --service="${{ secrets.RAILWAY_SERVICE_ID }}" \
+            --detach
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        working-directory: backend
+
+      - name: Summary
+        run: |
+          echo "## 🚂 Railway Deployment" >> $GITHUB_STEP_SUMMARY
+          echo "| Image | \`ghcr.io/${{ github.repository }}/backend:sha-${{ needs.build-and-push.outputs.short-sha }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Triggered by | @${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
+
+  # ── 2c. Deploy to Fly.io ──────────────────────────────────────────────────
+  deploy-fly:
+    name: 🪁 Deploy → Fly.io
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    environment: production
+    if: |
+      github.event.inputs.platform == 'fly' ||
+      vars.DEPLOY_TARGET == 'fly'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Deploy to Fly.io
+        run: flyctl deploy --remote-only --image "ghcr.io/${{ github.repository }}/backend:sha-${{ needs.build-and-push.outputs.short-sha }}"
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        working-directory: backend
+
+      - name: Summary
+        run: |
+          echo "## 🪁 Fly.io Deployment" >> $GITHUB_STEP_SUMMARY
+          echo "| Image | \`ghcr.io/${{ github.repository }}/backend:sha-${{ needs.build-and-push.outputs.short-sha }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| App | secretless-code-backend |" >> $GITHUB_STEP_SUMMARY
+
+  # ── 2d. Deploy to AWS ECS ─────────────────────────────────────────────────
+  deploy-ecs:
+    name: ☁️ Deploy → AWS ECS
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    environment: production
+    if: |
+      github.event.inputs.platform == 'ecs' ||
+      vars.DEPLOY_TARGET == 'ecs'
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION || 'ap-southeast-1' }}
+
+      - name: Get current task definition
+        id: get-task-def
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition "${{ secrets.ECS_TASK_DEFINITION_FAMILY || 'secretless-code-backend' }}" \
+            --query 'taskDefinition' \
+            --output json > /tmp/task-def.json
+          echo "Downloaded current task definition"
+
+      - name: Update image in task definition
+        id: update-task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: /tmp/task-def.json
+          container-name: backend
+          image: ghcr.io/${{ github.repository }}/backend:sha-${{ needs.build-and-push.outputs.short-sha }}
+
+      - name: Register new task definition revision
+        id: register-task-def
+        run: |
+          NEW_ARN=$(aws ecs register-task-definition \
+            --cli-input-json file://${{ steps.update-task-def.outputs.task-definition }} \
+            --query 'taskDefinition.taskDefinitionArn' \
+            --output text)
+          echo "arn=$NEW_ARN" >> $GITHUB_OUTPUT
+          echo "Registered new task definition: $NEW_ARN"
+
+      - name: Deploy to ECS service (force new deployment)
+        run: |
+          aws ecs update-service \
+            --cluster "${{ secrets.ECS_CLUSTER || 'secretless-code' }}" \
+            --service "${{ secrets.ECS_SERVICE || 'secretless-code-backend' }}" \
+            --task-definition "${{ steps.register-task-def.outputs.arn }}" \
+            --force-new-deployment
+
+          echo "⏳ Waiting for service to stabilize..."
+          aws ecs wait services-stable \
+            --cluster "${{ secrets.ECS_CLUSTER || 'secretless-code' }}" \
+            --services "${{ secrets.ECS_SERVICE || 'secretless-code-backend' }}"
+          echo "✅ ECS service stable"
+
+      - name: Summary
+        run: |
+          echo "## ☁️ AWS ECS Deployment" >> $GITHUB_STEP_SUMMARY
+          echo "| Task Def | \`${{ steps.register-task-def.outputs.arn }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Image | \`ghcr.io/${{ github.repository }}/backend:sha-${{ needs.build-and-push.outputs.short-sha }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Cluster | \`${{ secrets.ECS_CLUSTER || 'secretless-code' }}\` |" >> $GITHUB_STEP_SUMMARY
