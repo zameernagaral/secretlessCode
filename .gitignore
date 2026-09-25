@@ -14,6 +14,7 @@ frontend/out/
 .env.test.local
 .env.production.local
 backend/.env
+frontend/.env.local
 
 # Logs
 npm-debug.log*
@@ -40,3 +41,7 @@ Thumbs.db
 
 # Test coverage
 coverage/
+
+# Docker
+.docker/
+docker-compose.override.yml

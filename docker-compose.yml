@@ -1,0 +1,88 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Secretless Code — Docker Compose
+# Full local stack: Frontend (Next.js) + Backend (Express + Gitleaks)
+#
+# Usage:
+#   Start:  docker compose up --build
+#   Stop:   docker compose down
+#   Logs:   docker compose logs -f
+#   Rebuild one service: docker compose up --build backend
+#
+# Open in browser: http://localhost:3000
+# ──────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  # ── Express REST API + Gitleaks scanner ──────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: production
+    container_name: secretless-backend
+    restart: unless-stopped
+    ports:
+      - "4000:4000"
+    environment:
+      # Core settings
+      NODE_ENV: production
+      PORT: 4000
+      CORS_ORIGIN: "http://localhost:3000"
+
+      # Scan limits
+      CLONE_TIMEOUT_MS: 25000
+      SCAN_TIMEOUT_MS: 25000
+      MAX_REPO_SIZE_MB: 60
+      GITLEAKS_PATH: gitleaks
+
+      # GitHub App PR Scanner (fill in to enable)
+      GITHUB_APP_ID: ${GITHUB_APP_ID:-}
+      GITHUB_APP_PRIVATE_KEY: ${GITHUB_APP_PRIVATE_KEY:-}
+      GITHUB_WEBHOOK_SECRET: ${GITHUB_WEBHOOK_SECRET:-}
+
+      # Slack / Discord notifications (fill in to enable)
+      SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}
+      DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-}
+      NOTIFY_ON_CLEAN_SCANS: ${NOTIFY_ON_CLEAN_SCANS:-false}
+
+    volumes:
+      # Mount host /tmp for ephemeral scan sandboxes (optional — uses container /tmp by default)
+      - /tmp:/tmp
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    networks:
+      - secretless-net
+
+  # ── Next.js Frontend Dashboard ───────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: runner
+      args:
+        # Tells the frontend where to reach the backend API
+        # In Docker: the backend service is reachable via its service name
+        NEXT_PUBLIC_API_URL: "http://localhost:4000"
+    container_name: secretless-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      # Runtime override (browser JS uses this to call the API from the user's machine)
+      NEXT_PUBLIC_API_URL: "http://localhost:4000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - secretless-net
+
+networks:
+  secretless-net:
+    driver: bridge
+    name: secretless-network

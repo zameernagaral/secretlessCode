@@ -1,0 +1,24 @@
+node_modules/
+npm-debug.log*
+.env
+.env.local
+.env.*
+!.env.example
+
+# Temporary scan directories — should NEVER be inside the Docker context
+tmp/
+temp-scans/
+
+# Git history (not needed inside container)
+.git/
+.githooks/
+
+# OS & Editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Test & coverage
+coverage/
+*.test.js

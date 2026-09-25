@@ -1,0 +1,25 @@
+node_modules/
+npm-debug.log*
+.env
+.env.local
+.env.*
+!.env.example
+
+# Next.js build artifacts
+.next/
+out/
+
+# OS & Editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Git history
+.git/
+.githooks/
+
+# Test & coverage
+coverage/
+*.test.ts
+*.test.tsx
