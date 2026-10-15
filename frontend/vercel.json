@@ -44,7 +44,7 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://secretless-backend.onrender.com/api/$1"
+      "destination": "https://secretlesscode.onrender.com/api/$1"
     }
   ]
 }
