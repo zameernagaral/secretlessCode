@@ -1,7 +1,7 @@
 # ──────────────────────────────────────────────────────────────────────────────
 # Stage 1: Build Gitleaks v8 from source
 # ──────────────────────────────────────────────────────────────────────────────
-FROM golang:1.22-alpine AS gitleaks-builder
+FROM golang:alpine AS gitleaks-builder
 ENV CGO_ENABLED=0
 RUN go install github.com/zricethezav/gitleaks/v8@latest
 
@@ -31,8 +31,8 @@ RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
 WORKDIR /app
 
-# Install git, bash, ca-certificates, tini (PID 1 signal handler)
-RUN apk add --no-cache git bash ca-certificates tini
+# Install git, bash, ca-certificates, tini (PID 1 signal handler), openssl
+RUN apk add --no-cache git bash ca-certificates tini openssl
 
 # Copy CLI scanner binaries from builder stages
 COPY --from=gitleaks-builder /go/bin/gitleaks /usr/local/bin/gitleaks
@@ -41,9 +41,10 @@ COPY --from=trufflehog-downloader /usr/local/bin/trufflehog /usr/local/bin/truff
 # Verify all scanning tools are functional
 RUN git --version && gitleaks version && trufflehog --version
 
-# Install production-only Node.js dependencies (cached layer)
+# Install Node.js dependencies, generate Prisma client, then prune dev dependencies
 COPY package*.json ./
-RUN npm ci --only=production && npm cache clean --force
+COPY prisma ./prisma/
+RUN npm ci && npx prisma generate && npm prune --production && npm cache clean --force
 
 # Copy application source
 COPY src/ ./src/

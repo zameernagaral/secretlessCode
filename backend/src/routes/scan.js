@@ -102,4 +102,83 @@ router.post('/scan', validateBody(SCAN_SCHEMA), async (req, res) => {
   }
 });
 
+/**
+ * GET /api/v1/scans/demo
+ * Returns immediate specimen scan findings for the deliberately leaky demo repo.
+ * Public, zero signup, zero rate limit.
+ */
+router.get(['/scans/demo', '/scan/demo'], (req, res) => {
+  return res.status(200).json({
+    success: true,
+    data: {
+      repo: 'secretless-demo/vulnerable-specimen',
+      isDemo: true,
+      scanDurationMs: 1240,
+      timestamp: new Date().toISOString(),
+      summary: {
+        totalFindings: 3,
+        critical: 2,
+        high: 1,
+        medium: 0,
+        low: 0
+      },
+      findings: [
+        {
+          ruleId: 'aws-access-token',
+          provider: 'aws',
+          ruleName: 'AWS Access Key ID',
+          file: 'backend/.env',
+          line: 42,
+          maskedToken: 'AKIA••••••••••••••••3821',
+          remediation: {
+            revocationUrl: 'https://console.aws.amazon.com/iam/home#/security_credentials',
+            scrubCommand: 'git-filter-repo --invert-paths --path backend/.env --force'
+          }
+        },
+        {
+          ruleId: 'stripe-secret-key',
+          provider: 'stripe',
+          ruleName: 'Stripe Live Secret Key',
+          file: 'src/config/stripe.ts',
+          line: 14,
+          maskedToken: 'sk_live_••••••••••••••••8912',
+          remediation: {
+            revocationUrl: 'https://dashboard.stripe.com/apikeys',
+            scrubCommand: 'git-filter-repo --invert-paths --path src/config/stripe.ts --force'
+          }
+        },
+        {
+          ruleId: 'github-pat',
+          provider: 'github_pat',
+          ruleName: 'GitHub Personal Access Token',
+          file: '.github/workflows/deploy.yml',
+          line: 19,
+          maskedToken: 'ghp_••••••••••••••••7701',
+          remediation: {
+            revocationUrl: 'https://github.com/settings/tokens',
+            scrubCommand: 'git-filter-repo --invert-paths --path .github/workflows/deploy.yml --force'
+          }
+        }
+      ]
+    }
+  });
+});
+
+/**
+ * GET /api/v1/security/policy
+ * Returns the public specification for zero-retention architecture.
+ */
+router.get('/security/policy', (req, res) => {
+  return res.status(200).json({
+    success: true,
+    data: {
+      policy: 'Zero-Retention RAM Buffer Execution',
+      version: '2026.1',
+      retentionPolicy: 'Ephemeral in-memory cloning only; files discarded upon scan completion.',
+      encryption: 'TLS 1.3 / AES-256',
+      anonymousTTLSeconds: 3600
+    }
+  });
+});
+
 module.exports = router;

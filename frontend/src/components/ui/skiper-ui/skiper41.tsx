@@ -51,32 +51,22 @@ const Skiper41 = () => {
           </span>
         </div>
 
-        <div className="mt-24 w-full max-w-lg space-y-20 px-5 text-justify">
-          {Array.from({ length: 10 }).map((_, index) => (
-            <div key={index}>
-              Lorem ipsum dolor sit amet consectetur adipisicing elit.
-              Obcaecati, reiciendis eum vitae nostrum, temporibus repudiandae
-              voluptatibus, natus iure ipsa velit odit quibusdam illum. Quaerat
-              cumque laudantium libero reprehenderit perferendis quo nulla
-              voluptate? Repellat tenetur labore exercitationem dicta libero
-              voluptate suscipit, iusto ea assumenda. Ipsa enim, quidem atque
-              modi error eaque, debitis perferendis, hic iste libero dignissimos
-              ea! Quod inventore beatae aspernatur nulla rem perferendis aperiam
-              at debitis delectus odit quia animi ex mollitia vero molestias
-              itaque deleniti, quos exercitationem consequatur assumenda dolor?
-              Quod reiciendis in similique reprehenderit commodi quo blanditiis
-              nobis hic ea optio illum placeat officia alias quasi autem earum
-              quos obcaecati, voluptatum corporis quisquam. Quisquam iste, quas
-              explicabo omnis harum aut quam adipisci, voluptatem saepe
-              accusantium doloribus repellendus amet culpa magnam ex et dolores
-              accusamus commodi facere aliquam voluptatum alias? Officia
-              expedita ut vel? Beatae deserunt sequi id eos libero suscipit
-              totam cum, sed architecto atque quisquam et incidunt quod fuga
-              ullam repellat assumenda quos ab, voluptatum sint nesciunt? Ad
-              sapiente est laborum quam sint eius sequi. Eum, veniam
-              dignissimos.
-            </div>
-          ))}
+        <div className="mt-24 w-full max-w-lg space-y-12 px-5 text-justify">
+          <div className="font-body text-sm text-text/80 leading-relaxed">
+            <p className="mb-6">
+              When developers accidentally leak sensitive credentials, the window for remediation is dangerously small. 
+              Automated bots scan public repositories 24/7, instantly scraping API keys, database credentials, and cloud tokens.
+            </p>
+            <p className="mb-6">
+              <strong>Secretless Code</strong> is built to intercept these mistakes before they become catastrophes. By running 
+              ultra-fast, ephemeral scans across your repositories, we identify high-risk exposure without ever 
+              storing your code or persisting your sensitive data.
+            </p>
+            <p>
+              Your security is our priority. Every scan runs in a sandboxed, memory-only container that is 
+              completely purged the moment the analysis is complete. Zero persistence. Total peace of mind.
+            </p>
+          </div>
         </div>
       </div>
     </div>

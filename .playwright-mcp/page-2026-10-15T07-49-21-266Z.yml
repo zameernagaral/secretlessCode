@@ -1,0 +1,169 @@
+- generic [active] [ref=f1e1]:
+  - link "Skip to content" [ref=f1e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - banner [ref=f1e3]:
+    - link [ref=f1e4] [cursor=pointer]:
+      - /url: /
+      - img "Secretless Code emblem" [ref=f1e5]
+      - text: Secretless Code
+    - navigation "Primary navigation" [ref=f1e6]:
+      - list [ref=f1e7]:
+        - listitem [ref=f1e8]:
+          - link "How it works" [ref=f1e9] [cursor=pointer]:
+            - /url: "#how-it-works"
+        - listitem [ref=f1e10]:
+          - link "Remediation" [ref=f1e11] [cursor=pointer]:
+            - /url: "#remediation"
+        - listitem [ref=f1e12]:
+          - link "Pricing" [ref=f1e13] [cursor=pointer]:
+            - /url: "#pricing"
+        - listitem [ref=f1e14]:
+          - button "Sign in" [ref=f1e15] [cursor=pointer]
+        - listitem [ref=f1e16]:
+          - link "Scan repository" [ref=f1e17] [cursor=pointer]:
+            - /url: "#live-scan-console"
+  - main [ref=f1e18]:
+    - region [ref=f1e19]:
+      - paragraph [ref=f1e20]: SPEC // GITLEAKS ENGINE v8
+      - heading "Find leaked API keys in Git before they are exploited." [level=1] [ref=f1e21]
+      - paragraph [ref=f1e22]: Secretless Code clones public repositories into an isolated memory buffer, runs 140+ Gitleaks detection rules, and prints the exact terminal commands to revoke and purge them from git history.
+      - list [ref=f1e23]:
+        - listitem [ref=f1e24]: Ephemeral RAM-disk clone — code deleted immediately after scan
+        - listitem [ref=f1e25]: No registration required for public repositories
+        - listitem [ref=f1e26]: "Average scan duration under [NEEDS FACT: benchmark seconds]s"
+      - link "View zero-retention architecture specification" [ref=f1e27] [cursor=pointer]:
+        - /url: "#zero-retention-spec"
+    - region [ref=f1e28]:
+      - heading "Live scan console [RAM buffer]" [level=2] [ref=f1e29]
+      - generic [ref=f1e30]:
+        - text: Target repository URL
+        - textbox "Target repository URL" [ref=f1e31]:
+          - /placeholder: https://github.com/organization/repository
+        - button "Scan target" [ref=f1e32] [cursor=pointer]
+        - button "Or scan sample vulnerable repository (10s)" [ref=f1e33] [cursor=pointer]
+      - region [ref=f1e34]:
+        - heading "Scan logs" [level=3] [ref=f1e35]
+        - status [ref=f1e36]:
+          - code [ref=f1e38]: "[00:01] Fetching shallow commit tree (depth 1)..."
+          - code [ref=f1e40]: "[00:02] Running Gitleaks rule evaluation (140 signatures)..."
+          - code [ref=f1e42]: "[00:03] Scan finished. 3 committed secrets detected."
+      - region [ref=f1e43]:
+        - heading "Findings" [level=3] [ref=f1e44]
+        - list [ref=f1e45]:
+          - listitem [ref=f1e46]:
+            - heading "AWS Access Key ID" [level=4] [ref=f1e47]
+            - code [ref=f1e48]: AKIA••••••••••••••••3821
+            - paragraph [ref=f1e49]: backend/.env:42
+            - link "Revoke token at AWS" [ref=f1e50] [cursor=pointer]:
+              - /url: https://console.aws.amazon.com/iam
+            - button "Copy git-filter-repo command" [ref=f1e51] [cursor=pointer]
+          - listitem [ref=f1e52]:
+            - heading "Stripe Live Secret Key" [level=4] [ref=f1e53]
+            - code [ref=f1e54]: sk_live_••••••••••••••••8912
+            - paragraph [ref=f1e55]: src/config/stripe.ts:14
+      - region [ref=f1e56]:
+        - heading "Zero exposed secrets detected." [level=3] [ref=f1e57]
+        - paragraph [ref=f1e58]: Scanned commit tree passed all Gitleaks pattern evaluations.
+        - button "Download audit report (SARIF)" [ref=f1e59] [cursor=pointer]
+    - region [ref=f1e60]:
+      - heading "Step-by-step credential revocation and history purge." [level=2] [ref=f1e61]
+      - paragraph [ref=f1e62]: Deleting a secret in a new commit leaves it visible in Git history. Follow these two steps to rotate credentials and scrub past commit trees.
+      - navigation "Remediation providers" [ref=f1e63]:
+        - list [ref=f1e64]:
+          - listitem [ref=f1e65]:
+            - button "AWS IAM" [ref=f1e66] [cursor=pointer]
+          - listitem [ref=f1e67]:
+            - button "Stripe" [ref=f1e68] [cursor=pointer]
+          - listitem [ref=f1e69]:
+            - button "GitHub PAT" [ref=f1e70] [cursor=pointer]
+          - listitem [ref=f1e71]:
+            - button "OpenAI" [ref=f1e72] [cursor=pointer]
+          - listitem [ref=f1e73]:
+            - button "MongoDB URI" [ref=f1e74] [cursor=pointer]
+          - listitem [ref=f1e75]:
+            - button "SSH private key" [ref=f1e76] [cursor=pointer]
+      - article [ref=f1e77]:
+        - 'heading "Step 1: Revoke the token immediately" [level=3] [ref=f1e78]'
+        - paragraph [ref=f1e79]: Open your provider dashboard, deactivate the exposed credential ID, and generate a new key pair with updated environment variables.
+      - article [ref=f1e80]:
+        - 'heading "Step 2: Scrub commit history using git-filter-repo" [level=3] [ref=f1e81]'
+        - code [ref=f1e83]: git-filter-repo --invert-paths --path backend/.env --force
+        - button "Copy command" [ref=f1e84] [cursor=pointer]
+        - status [ref=f1e85]: Command copied to clipboard
+        - paragraph [ref=f1e86]: Rewriting commit history alters commit hashes. Coordinate with your team before pushing with --force.
+    - region [ref=f1e87]:
+      - heading "Transparent capacity tiers." [level=2] [ref=f1e88]
+      - generic [ref=f1e90]:
+        - checkbox "Billed annually (save 20%)" [ref=f1e91]
+        - text: Billed annually (save 20%)
+      - region [ref=f1e92]:
+        - heading "Free" [level=3] [ref=f1e93]
+        - paragraph [ref=f1e94]: $0
+        - paragraph [ref=f1e95]: For public repository triage.
+        - list [ref=f1e96]:
+          - listitem [ref=f1e97]: Unlimited public repository scans
+          - listitem [ref=f1e98]: Anonymous instant execution
+          - listitem [ref=f1e99]: "Rate limit: 3 scans per 15 minutes"
+        - button "Scan repository" [ref=f1e100] [cursor=pointer]
+      - region [ref=f1e101]:
+        - heading "Pro" [level=3] [ref=f1e102]
+        - paragraph [ref=f1e103]: $29 / month
+        - paragraph [ref=f1e104]: $23 / month
+        - paragraph [ref=f1e105]: For independent engineers shipping daily.
+        - list [ref=f1e106]:
+          - listitem [ref=f1e107]: Includes all Free features
+          - listitem [ref=f1e108]: Private repository scanning via GitHub OAuth
+          - listitem [ref=f1e109]: Persistent scan history saved in Supabase
+          - listitem [ref=f1e110]: Email notifications via Resend on scan completion
+        - button "Start 14-day trial" [ref=f1e111] [cursor=pointer]
+      - region [ref=f1e112]:
+        - heading "Team" [level=3] [ref=f1e113]
+        - paragraph [ref=f1e114]: From $99 / month
+        - paragraph [ref=f1e115]: For engineering organizations.
+        - list [ref=f1e116]:
+          - listitem [ref=f1e117]: Up to 10 team seats with role-based access
+          - listitem [ref=f1e118]: Dedicated scanner container on Render / Railway
+          - listitem [ref=f1e119]: Custom regex pattern definitions
+        - button "Contact sales" [ref=f1e120] [cursor=pointer]
+    - region [ref=f1e121]:
+      - heading "Exact error and failure state specifications" [level=2] [ref=f1e122]
+      - list [ref=f1e123]:
+        - listitem [ref=f1e124]:
+          - alert [ref=f1e125]: Please enter a valid public Git repository URL (e.g., https://github.com/owner/repo).
+        - listitem [ref=f1e126]:
+          - alert [ref=f1e127]: Repository not found or private. Anonymous scans only support public repositories.
+        - listitem [ref=f1e128]:
+          - alert [ref=f1e129]: Anonymous scan limit reached (3 scans per 15 minutes). Wait 15 minutes or sign in to continue.
+        - listitem [ref=f1e130]:
+          - alert [ref=f1e131]: The scan timed out. The repository exceeds the ephemeral limit (max 50MB / 1,000 commits).
+        - listitem [ref=f1e132]:
+          - alert [ref=f1e133]: Unable to load demo scan data. Please check your network connection and retry.
+        - listitem [ref=f1e134]:
+          - alert [ref=f1e135]: Unable to access clipboard automatically. Please copy the commands manually.
+        - listitem [ref=f1e136]:
+          - alert [ref=f1e137]: You are offline. Showing cached remediation guide.
+        - listitem [ref=f1e138]:
+          - alert [ref=f1e139]: Notification email could not be sent. Your scan results remain available in your dashboard.
+        - listitem [ref=f1e140]:
+          - alert [ref=f1e141]: Secret not found. The requested page or ephemeral report does not exist or expired.
+    - complementary [ref=f1e142]:
+      - heading "Zero-retention architecture specification" [level=2] [ref=f1e143]
+      - paragraph [ref=f1e144]: Ephemeral RAM-disk clone — code deleted immediately after scan. No registration required for public repositories.
+  - contentinfo [ref=f1e145]:
+    - paragraph [ref=f1e146]: Secretless Code
+    - paragraph [ref=f1e147]: "© [NEEDS FACT: current year] Secretless Code. Ephemeral credential security."
+    - navigation "Footer navigation" [ref=f1e148]:
+      - list [ref=f1e149]:
+        - listitem [ref=f1e150]:
+          - link "Zero-retention architecture" [ref=f1e151] [cursor=pointer]:
+            - /url: "#zero-retention-spec"
+        - listitem [ref=f1e152]:
+          - link "Terms of service" [ref=f1e153] [cursor=pointer]:
+            - /url: "#terms"
+        - listitem [ref=f1e154]:
+          - link "Privacy policy" [ref=f1e155] [cursor=pointer]:
+            - /url: "#privacy"
+        - listitem [ref=f1e156]:
+          - link "GitHub repository" [ref=f1e157] [cursor=pointer]:
+            - /url: https://github.com/zameernagaral/secretlessCode
+  - alert [ref=f1e158]

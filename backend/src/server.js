@@ -74,7 +74,7 @@ app.use(outputSanitizer);
 app.use(globalLimiter);
 
 // ── Public: Health check ────────────────────────────────────────────────────────
-app.get('/api/v1/health', healthLimiter, (req, res) => {
+app.get(['/api/v1/health', '/api/health', '/health'], healthLimiter, (req, res) => {
   res.status(200).json({
     success: true,
     data: {

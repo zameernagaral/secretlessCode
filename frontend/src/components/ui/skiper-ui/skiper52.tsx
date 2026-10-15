@@ -1,6 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
+import Image from "next/image";
 import React, { useState } from "react";
 import "swiper/css";
 import "swiper/css/effect-creative";
@@ -12,49 +13,34 @@ import { cn } from "@/lib/utils";
 const Skiper52 = () => {
   const images = [
     {
-      src: "/images/x.com/13.jpeg",
-      alt: "Illustrations by my fav AarzooAly",
-      code: "# 23",
+      src: "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=2070&auto=format&fit=crop",
+      alt: "Cybersecurity Data Center",
+      code: "SEC-01",
     },
     {
-      src: "/images/x.com/32.jpeg",
-      alt: "Illustrations by my fav AarzooAly",
-      code: "# 23",
+      src: "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?q=80&w=2070&auto=format&fit=crop",
+      alt: "Matrix Code",
+      code: "SEC-02",
     },
     {
-      src: "/images/x.com/20.jpeg",
-      alt: "Illustrations by my fav AarzooAly",
-      code: "# 23",
+      src: "https://images.unsplash.com/photo-1614064641936-73273248aacc?q=80&w=2070&auto=format&fit=crop",
+      alt: "Digital Lock",
+      code: "SEC-03",
     },
     {
-      src: "/images/x.com/21.jpeg",
-      alt: "Illustrations by my fav AarzooAly",
-      code: "# 23",
+      src: "https://images.unsplash.com/photo-1563206767-5b18f218e8de?q=80&w=2069&auto=format&fit=crop",
+      alt: "Hacker Terminal",
+      code: "SEC-04",
     },
     {
-      src: "/images/x.com/19.jpeg",
-      alt: "Illustrations by my fav AarzooAly",
-      code: "# 23",
+      src: "https://images.unsplash.com/photo-1510511459019-5d05afdfd615?q=80&w=2070&auto=format&fit=crop",
+      alt: "Network Connections",
+      code: "SEC-05",
     },
     {
-      src: "/images/x.com/1.jpeg",
-      alt: "Illustrations by my fav AarzooAly",
-      code: "# 23",
-    },
-    {
-      src: "/images/x.com/2.jpeg",
-      alt: "Illustrations by my fav AarzooAly",
-      code: "# 23",
-    },
-    {
-      src: "/images/x.com/3.jpeg",
-      alt: "Illustrations by my fav AarzooAly",
-      code: "# 23",
-    },
-    {
-      src: "/images/x.com/4.jpeg",
-      alt: "Illustrations by my fav AarzooAly",
-      code: "# 23",
+      src: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?q=80&w=2034&auto=format&fit=crop",
+      alt: "Server Racks",
+      code: "SEC-06",
     },
   ];
 
@@ -130,10 +116,12 @@ const HoverExpand_001 = ({
                   </motion.div>
                 )}
               </AnimatePresence>
-              <img
+              <Image
                 src={image.src}
-                className="size-full object-cover"
+                className="object-cover"
                 alt={image.alt}
+                fill
+                sizes="(max-width: 768px) 100vw, 33vw"
               />
             </motion.div>
           ))}

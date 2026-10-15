@@ -1,0 +1,11 @@
+# RULES (Part B: existing site)
+- The existing code and design win. Match its naming, structure, styling and look, even if you would do it differently. The v2 'banned look' and 'tokens only' rules apply to NEW work only, never as a reason to restyle existing code.
+- Read docs/CODEBASE.md and docs/CHANGE.md before every task. If either is missing, stop and tell me.
+- ONE change per session. Touch only the files listed in docs/CHANGE.md. If you think another file needs to change, stop and ask me. Do not 'also improve' anything.
+- No refactors, renames, reformatting, dependency upgrades or file moves unless docs/CHANGE.md says so. They cause merge conflicts for my teammate.
+- No new dependency without asking first: one-line reason + size.
+- Library APIs: use Context7 for the INSTALLED version. Never guess syntax.
+- Never put secrets in prompts, docs/ or the repo. Auth, permissions and validation happen on the server. A check that exists only in the browser does not exist.
+- Never run git commands that rewrite history or discard work (force push, reset --hard, checkout of other people's files) unless I type the exact command.
+- Work only on my current branch. Never commit to main.
+- Missing fact -> write [NEEDS FACT] and tell me. Never invent names, numbers, keys or limits.

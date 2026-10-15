@@ -25,33 +25,33 @@ export default function ErrorAlert({ message, errorCode, onRetry }: ErrorProps) 
   }
 
   return (
-    <div className="glass-panel rounded-2xl p-5 border border-rose-500/30 bg-rose-950/20 mb-8 text-rose-200">
+    <div className="rounded border border-[#C13B2E] bg-surface-50 p-5 mb-8 text-text shadow-sm">
       <div className="flex items-start space-x-3">
-        <XCircle className="w-5 h-5 text-rose-400 flex-shrink-0 mt-0.5" />
+        <XCircle className="w-5 h-5 text-[#C13B2E] flex-shrink-0 mt-0.5" />
         <div className="flex-1">
           <div className="flex items-center space-x-2">
-            <h4 className="font-semibold text-rose-300 text-sm">
+            <h4 className="font-semibold text-text text-sm font-heading">
               Scan Failed
             </h4>
             {errorCode && (
-              <span className="font-mono text-[10px] px-2 py-0.5 rounded bg-rose-900/60 border border-rose-700/50 text-rose-300">
+              <span className="font-mono text-[10px] px-2 py-0.5 rounded bg-[#C13B2E]/10 border border-[#C13B2E]/30 text-[#C13B2E]">
                 {errorCode}
               </span>
             )}
           </div>
-          <p className="text-xs text-rose-200/90 mt-1">
+          <p className="text-xs text-muted mt-1 font-body">
             {message}
           </p>
 
-          <div className="mt-3 flex items-center space-x-2 text-xs text-rose-300/80 bg-rose-950/40 p-2.5 rounded-xl border border-rose-900/40">
-            <HelpCircle className="w-4 h-4 flex-shrink-0 text-rose-400" />
+          <div className="mt-3 flex items-center space-x-2 text-xs text-muted bg-surface-100 p-2.5 rounded border border-secondary font-mono">
+            <HelpCircle className="w-4 h-4 flex-shrink-0 text-primary" />
             <span>{tip}</span>
           </div>
 
           {onRetry && (
             <button
               onClick={onRetry}
-              className="mt-3 inline-flex items-center space-x-1.5 text-xs font-mono font-medium text-white bg-rose-800/60 hover:bg-rose-700/80 px-3 py-1.5 rounded-lg border border-rose-600/40 transition-colors"
+              className="mt-3 inline-flex items-center space-x-1.5 text-xs font-mono font-medium text-background bg-primary hover:bg-[#A33D18] px-3 py-1.5 rounded transition-colors"
             >
               <RefreshCw className="w-3 h-3" />
               <span>Retry Scan</span>

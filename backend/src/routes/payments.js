@@ -6,10 +6,10 @@ const db = require('../utils/db');
 
 const router = express.Router();
 
-// Fallback to empty string if not provided; Stripe will throw an error if used without a valid key.
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2023-10-16',
-});
+// Safely initialize Stripe only if an API key is provided
+const stripe = process.env.STRIPE_SECRET_KEY
+  ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2023-10-16' })
+  : null;
 
 const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || '';
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
@@ -21,6 +21,12 @@ const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
  * Protected route: verifies user session on the server via Clerk.
  */
 router.post('/payments/create-checkout-session', express.json(), requireAuth, async (req, res) => {
+  if (!stripe) {
+    return res.status(503).json({
+      success: false,
+      error: { code: 'PAYMENTS_NOT_CONFIGURED', message: 'Payment processing is not configured on this server.' }
+    });
+  }
   try {
     const userId = req.auth.userId; // Securely extracted from Clerk session
 
@@ -76,6 +82,10 @@ router.post('/payments/create-checkout-session', express.json(), requireAuth, as
  */
 router.post('/webhooks/stripe', express.raw({ type: 'application/json' }), async (req, res) => {
   const signature = req.headers['stripe-signature'];
+
+  if (!stripe || !STRIPE_WEBHOOK_SECRET) {
+    return res.status(503).send('Stripe payments are not configured.');
+  }
 
   let event;
 

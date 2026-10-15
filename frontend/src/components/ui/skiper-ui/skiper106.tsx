@@ -47,9 +47,10 @@ const Input = ({ className, wrapperClassName, ...props }: InputFieldProps) => {
   );
 };
 
-const PASSWORD_CHAR = navigator.userAgent.match(/firefox|fxios/i)
-  ? "\u25CF"
-  : "\u2022";
+const PASSWORD_CHAR =
+  typeof navigator !== "undefined" && navigator.userAgent.match(/firefox|fxios/i)
+    ? "\u25CF"
+    : "\u2022";
 
 const SmoothInput = ({
   className,
@@ -135,6 +136,7 @@ const SmoothInput = ({
     if (
       PASSWORD_CHAR === "\u2022" &&
       isPassword &&
+      typeof navigator !== "undefined" &&
       !navigator.userAgent.match(/chrome|chromium|crios/i)
     ) {
       fontSize = `${parseFloat(fontSize) + 6.25}px`;

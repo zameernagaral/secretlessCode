@@ -83,17 +83,17 @@ export default function ResultsTable({ findings, repoName, scannedAt }: ResultsT
 
   if (findings.length === 0) {
     return (
-      <div className="glass-panel rounded-2xl p-12 text-center border border-emerald-500/30 bg-emerald-950/10 mb-8">
-        <div className="w-16 h-16 rounded-full bg-emerald-950/80 border border-emerald-500/40 flex items-center justify-center mx-auto mb-4">
-          <ShieldCheck className="w-8 h-8 text-emerald-400" />
+      <div className="rounded border border-secondary bg-surface-50 p-8 sm:p-12 text-center mb-8">
+        <div className="w-16 h-16 rounded bg-surface-100 border border-secondary flex items-center justify-center mx-auto mb-4">
+          <ShieldCheck className="w-8 h-8 text-primary" />
         </div>
-        <h3 className="text-xl font-bold text-white mb-2">
+        <h3 className="text-xl font-heading font-bold text-text mb-2">
           Zero Leaked Secrets Detected
         </h3>
-        <p className="text-sm text-slate-400 max-w-md mx-auto mb-4">
-          Gitleaks completed inspection on <span className="text-slate-200 font-mono font-medium">{repoName}</span> and found zero exposed credentials, API keys, or private tokens.
+        <p className="text-sm text-muted max-w-md mx-auto mb-6 font-body leading-relaxed">
+          Gitleaks completed inspection on <span className="text-text font-mono bg-surface-100 px-1.5 py-0.5 rounded border border-secondary">{repoName}</span> and found zero exposed credentials, API keys, or private tokens.
         </p>
-        <span className="inline-flex items-center space-x-1.5 text-xs font-mono px-3 py-1 rounded-full bg-emerald-900/40 text-emerald-300 border border-emerald-700/50">
+        <span className="inline-flex items-center space-x-1.5 text-xs font-mono px-4 py-1.5 rounded bg-surface-100 text-accent border border-secondary shadow-[2px_2px_0px_0px_rgba(232,185,61,0.2)]">
           <span>✓ Clean Repository</span>
         </span>
       </div>
@@ -101,39 +101,40 @@ export default function ResultsTable({ findings, repoName, scannedAt }: ResultsT
   }
 
   return (
-    <div className="glass-panel rounded-lg overflow-hidden mb-12">
+    <div className="rounded border border-secondary bg-surface-50 overflow-hidden mb-12">
       {/* Table Header Controls */}
-      <div className="p-4 sm:p-6 border-b border-secondary flex flex-col md:flex-row md:items-center justify-between gap-4 bg-surface-100">
+      <div className="p-4 sm:p-6 border-b border-secondary flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-surface-100">
         <div>
           <h3 className="text-base sm:text-lg font-heading text-text flex items-center space-x-2">
             <span>Detection Report:</span>
-            <span className="text-primary font-mono">{repoName}</span>
+            <span className="text-primary font-mono truncate max-w-[200px] sm:max-w-xs">{repoName}</span>
           </h3>
           <p className="text-xs text-muted mt-0.5">
             Showing {filteredFindings.length} of {findings.length} findings • Secrets are masked client-side
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
           {/* Search Input */}
-          <div className="relative">
-            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <div className="relative flex-grow sm:flex-grow-0">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
             <input
               type="text"
               placeholder="Filter file or rule..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-8 pr-3 py-1.5 text-xs bg-slate-900/90 border border-slate-700/80 rounded-xl text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-cyan-500 w-44 sm:w-52"
+              className="pl-8 pr-3 py-1.5 text-xs bg-surface-50 border border-secondary rounded text-text placeholder-muted focus:outline-none focus:border-accent w-full sm:w-52 font-mono transition-colors"
             />
           </div>
 
-          {/* Severity Filter */}
-          <div className="flex items-center space-x-1 bg-surface-50 p-1 border border-secondary">
+          <div className="flex items-center justify-between sm:justify-start gap-3 w-full sm:w-auto">
+            {/* Severity Filter */}
+            <div className="flex items-center space-x-1 bg-surface-50 p-1 border border-secondary flex-shrink-0">
             {['ALL', 'CRITICAL', 'HIGH', 'MEDIUM'].map((sev) => (
               <button
                 key={sev}
                 onClick={() => setSelectedSeverity(sev)}
-                className={`text-[11px] font-mono px-2.5 py-1 transition-colors ${
+                className={`text-[10px] sm:text-[11px] font-mono px-2 py-1 transition-colors ${
                   selectedSeverity === sev
                     ? 'bg-secondary text-text font-semibold'
                     : 'text-muted hover:text-text'
@@ -142,17 +143,18 @@ export default function ResultsTable({ findings, repoName, scannedAt }: ResultsT
                 {sev}
               </button>
             ))}
-          </div>
+            </div>
 
-          {/* Export Report */}
-          <button
-            onClick={exportJSON}
-            className="flex items-center space-x-1.5 text-xs font-mono px-3 py-1.5 bg-surface-100 hover:bg-surface-200 text-text border border-secondary transition-colors"
-            title="Download sanitized report"
-          >
-            <Download className="w-3.5 h-3.5 text-accent" />
-            <span>Export JSON</span>
-          </button>
+            {/* Export Report */}
+            <button
+              onClick={exportJSON}
+              className="flex items-center justify-center space-x-1.5 text-xs font-mono px-3 py-1.5 bg-surface-100 hover:bg-surface-200 text-text border border-secondary transition-colors flex-shrink-0"
+              title="Download sanitized report"
+            >
+              <Download className="w-3.5 h-3.5 text-accent" />
+              <span className="hidden sm:inline">Export</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -232,15 +234,15 @@ export default function ResultsTable({ findings, repoName, scannedAt }: ResultsT
                   </td>
 
                   {/* Masked Secret Value */}
-                  <td className="py-3.5 px-4 sm:px-6 whitespace-nowrap">
-                    <div className="flex items-center space-x-2">
-                      <div className="flex items-center space-x-1.5 px-2.5 py-1 bg-surface-200 border border-secondary text-text text-xs font-mono">
+                  <td className="py-3.5 px-4 sm:px-6">
+                    <div className="flex items-center space-x-2 max-w-[140px] sm:max-w-[300px] md:max-w-none">
+                      <div className="flex items-center space-x-1.5 px-2.5 py-1 bg-surface-200 border border-secondary text-text text-xs font-mono w-full overflow-hidden">
                         <Lock className="w-3 h-3 text-accent flex-shrink-0" />
-                        <span className="tracking-wider">{masked}</span>
+                        <span className="tracking-wider truncate block w-full">{masked}</span>
                       </div>
                       <button
                         onClick={() => handleCopy(masked, finding.id)}
-                        className="p-1 text-muted hover:text-text hover:bg-surface-200 transition-colors"
+                        className="p-1 text-muted hover:text-text hover:bg-surface-200 transition-colors flex-shrink-0"
                         title="Copy masked secret"
                       >
                         {copiedId === finding.id ? (
