@@ -29,7 +29,9 @@ export default function DashboardPage() {
     }
 
     // Fetch database scan history
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+    const apiUrl =
+      process.env.NEXT_PUBLIC_API_URL ||
+      (typeof window !== 'undefined' && window.location.hostname !== 'localhost' ? '' : 'http://localhost:4000');
     fetch(`${apiUrl}/api/v1/scans`)
       .then((res) => (res.ok ? res.json() : Promise.reject(res)))
       .then((data) => {
