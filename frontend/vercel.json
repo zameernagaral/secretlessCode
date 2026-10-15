@@ -46,9 +46,5 @@
       "source": "/api/(.*)",
       "destination": "https://secretless-backend.onrender.com/api/$1"
     }
-  ],
-
-  "env": {
-    "NEXT_PUBLIC_API_URL": "@next-public-api-url"
-  }
+  ]
 }
