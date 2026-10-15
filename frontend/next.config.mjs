@@ -11,9 +11,6 @@ const nextConfig = {
   // 'standalone' for Vercel/Docker, default (undefined) for Cloudflare Pages
   output: isCloudflarePages ? undefined : 'standalone',
 
-  env: {
-    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000',
-  },
 
   images: {
     remotePatterns: [
