@@ -9,40 +9,41 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: '#1B1B16',
-        text: '#EDE8DC',
-        primary: '#B5451B',
-        secondary: '#8A8672',
-        accent: '#E8B93D',
-        // Provide standard variants that are mapped back to our brand colors to ensure UI components don't break,
-        // but avoid generic blue/purple styles as requested.
-        muted: '#8A8672',
-        border: '#8A8672',
-        input: '#8A8672',
-        ring: '#E8B93D',
-        surface: {
-          50: '#2A2A22',
-          100: '#24241D',
-          200: '#1F1F19',
-          300: '#1B1B16'
-        }
+        background: 'var(--color-background)',
+        surface: 'var(--color-surface)',
+        text: 'var(--color-ink)',
+        ink: 'var(--color-ink)',
+        muted: 'var(--color-muted-ink)',
+        'muted-ink': 'var(--color-muted-ink)',
+        border: 'var(--color-rule)',
+        rule: 'var(--color-rule)',
+        signal: 'var(--color-signal)',
+        accent: 'var(--color-signal)',
       },
       fontFamily: {
-        heading: ['"Archivo"', 'sans-serif'],
-        body: ['"IBM Plex Sans"', 'sans-serif'],
-        mono: ['"IBM Plex Mono"', 'monospace'],
-        sans: ['"IBM Plex Sans"', 'sans-serif'], // fallback for standard sans
+        heading: ['var(--font-display)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        body: ['var(--font-body)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        mono: ['var(--font-mono)', 'ui-monospace', 'monospace'],
       },
-      animation: {
-        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-        'scan-line': 'scanline 2s ease-in-out infinite',
+      borderRadius: {
+        sharp: 'var(--radius-sharp)',
+        sm: 'var(--radius-sm)',
+        card: 'var(--radius-card)',
       },
-      keyframes: {
-        scanline: {
-          '0%': { transform: 'translateY(-100%)' },
-          '100%': { transform: 'translateY(1000%)' },
-        }
-      }
+      spacing: {
+        1: 'var(--space-1)',
+        2: 'var(--space-2)',
+        3: 'var(--space-3)',
+        4: 'var(--space-4)',
+        5: 'var(--space-5)',
+        6: 'var(--space-6)',
+        8: 'var(--space-8)',
+        10: 'var(--space-10)',
+        12: 'var(--space-12)',
+        16: 'var(--space-16)',
+        20: 'var(--space-20)',
+        24: 'var(--space-24)',
+      },
     },
   },
   plugins: [require("tailwindcss-animate")],

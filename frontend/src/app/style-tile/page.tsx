@@ -1,5 +1,15 @@
 import React from 'react';
+import type { Metadata } from 'next';
 import styles from './styleTile.module.css';
+import { BorderTrailSpecimen } from '@/components/BorderTrailSpecimen';
+
+export const metadata: Metadata = {
+  title: 'Design System & Style Tile',
+  description: 'Design tokens, typography scale, palette contrast, and kinetic motion components for Secretless Code.',
+  alternates: {
+    canonical: '/style-tile',
+  },
+};
 
 export default function StyleTilePage() {
   const swatches = [
@@ -145,6 +155,24 @@ export default function StyleTilePage() {
           </div>
         </div>
       </section>
+
+      {/* 6. Motion Primitives: Border Trail Specimen */}
+      <section className={styles.section}>
+        <h2 className={styles.sectionHeading}>6. Motion Primitives: Border Trail (Security Scanner Telemetry)</h2>
+        <div className={styles.specimenCard}>
+          <div className={styles.specimenHeader}>
+            <span>BORDER TRAIL PRIMITIVE // KINETIC BORDER LIGHT</span>
+            <span>BEAM: 120px // PURE WHITE LUMINOUS &amp; EMERALD</span>
+          </div>
+          <div className="py-4 flex justify-center">
+            <BorderTrailSpecimen />
+          </div>
+          <div className={styles.specimenNote}>
+            Traces the container perimeter with crisp SVG stroke light during active scanning, eliminating solid square block artifacts across all browser engines.
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
+

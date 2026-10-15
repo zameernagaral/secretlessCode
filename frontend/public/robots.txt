@@ -1,0 +1,6 @@
+# Secretless Code — Production Robots Directive
+User-agent: *
+Allow: /
+Disallow: /api/
+
+Sitemap: https://secretlesscode.com/sitemap.xml

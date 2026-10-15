@@ -7,6 +7,7 @@ const scanFileRouter = require('./routes/scanFile');
 const githubRouter = require('./routes/github');
 const adminRouter = require('./routes/admin');
 const paymentsRouter = require('./routes/payments');
+const { router: scansHistoryRouter } = require('./routes/scansHistory');
 const { requireAdminAuth } = require('./middlewares/auth');
 const { sanitizeRequestBody } = require('./utils/validator');
 const { requestLogger } = require('./middlewares/requestLogger');
@@ -89,6 +90,7 @@ app.get(['/api/v1/health', '/api/health', '/health'], healthLimiter, (req, res) 
 app.use('/api/v1/scan', scanLimiter);
 app.use('/api/v1', scanRouter);
 app.use('/api/v1', scanFileRouter);    // POST /api/v1/scan/upload
+app.use('/api/v1', scansHistoryRouter); // GET /api/v1/scans, GET /api/v1/scans/:id
 
 // ── Public: GitHub App webhook ──────────────────────────────────────────────────
 app.use('/api/v1/webhooks/github', webhookLimiter);
@@ -111,19 +113,34 @@ app.use((req, res) => {
 
 // ── Centralized error handler ───────────────────────────────────────────────────
 app.use((err, req, res, next) => {
-  // Never leak stack traces or internal paths in production
   const isProd = process.env.NODE_ENV === 'production';
+  const statusCode = err.status || err.statusCode || (err.type === 'entity.too.large' ? 413 : 500);
+  const errorCode =
+    err.type === 'entity.too.large' || statusCode === 413
+      ? 'PAYLOAD_TOO_LARGE'
+      : err.type === 'entity.parse.failed' || statusCode === 400
+      ? 'BAD_REQUEST'
+      : 'INTERNAL_SERVER_ERROR';
+
   logger.error('[Server] Unhandled error', {
     reqId: req.id,
     method: req.method,
     path: req.path,
-    error: isProd ? 'Internal server error' : err.message
+    statusCode,
+    errorCode,
+    error: isProd && statusCode === 500 ? 'Internal server error' : err.message
   });
-  res.status(500).json({
+
+  res.status(statusCode).json({
     success: false,
     error: {
-      code: 'INTERNAL_SERVER_ERROR',
-      message: 'An internal server error occurred.'
+      code: errorCode,
+      message:
+        statusCode === 413
+          ? 'Request payload exceeds the 100kb limit.'
+          : statusCode === 400
+          ? 'Invalid request payload format.'
+          : 'An internal server error occurred.'
     }
   });
 });

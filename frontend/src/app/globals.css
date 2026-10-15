@@ -1,55 +1,56 @@
 @import "../styles/tokens.css";
 @import "tw-animate-css";
-@import "shadcn/tailwind.css";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-
 @layer base {
   body {
-    @apply bg-background text-text font-body;
+    background-color: var(--color-background);
+    color: var(--color-ink);
+    font-family: var(--font-body);
+    line-height: var(--leading-body);
   }
-  
+
   h1, h2, h3, h4, h5, h6 {
-    @apply font-heading font-semibold tracking-tight;
+    font-family: var(--font-display);
+    text-wrap: balance;
+    color: var(--color-ink);
   }
-  
+
+  p, li {
+    max-width: 65ch;
+  }
+
   code, pre {
-    @apply font-mono;
+    font-family: var(--font-mono);
   }
-  
-  /* Reset tailwind border color globally to our secondary/border color */
-  * {
-    @apply border-border;
+
+  /* Focus visible accessibility floor across all interactive elements */
+  a:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  [tabindex]:focus-visible {
+    outline: var(--border-ink) !important;
+    outline-offset: var(--space-1) !important;
   }
 }
 
-/* Base custom styles to enforce flat fills and no glow */
-.glass-panel {
-  /* Using flat fills instead of translucent blur for this theme */
-  @apply bg-surface-100 border border-secondary;
-}
-
-.glass-panel-hover:hover {
-  @apply border-primary;
-}
-
-/* Custom modern scrollbar matching the dark theme */
+/* Custom scrollbar matching precision dark theme */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: var(--space-2);
+  height: var(--space-2);
 }
 
 ::-webkit-scrollbar-track {
-  background: #1B1B16;
+  background: var(--color-background);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #24241D;
-  border-radius: 4px;
+  background: var(--color-rule);
+  border-radius: var(--radius-sm);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #8A8672;
+  background: var(--color-muted-ink);
 }

@@ -109,31 +109,37 @@ async function runScan(targetDir, reportPath) {
     }
 
     // ── Auto: Try each engine in priority order ─────────────────────────────
+    // ── Auto: Combine Gitleaks with Built-in heuristic engine (complete coverage) ─
     case 'auto':
     default: {
-      // 1st priority: Gitleaks (most widely adopted, fastest)
+      const results = [];
+      const enginesUsed = [];
+
+      // 1st: Run Gitleaks if installed (detects Git history, AWS, Stripe, GitHub tokens)
       if (await gitleaks.isAvailable()) {
         try {
-          const findings = await gitleaks.scan(targetDir, reportPath);
-          return { findings, engineUsed: 'gitleaks' };
+          const glFindings = await gitleaks.scan(targetDir, reportPath);
+          results.push(...glFindings);
+          enginesUsed.push('gitleaks');
         } catch (err) {
-          logger.warn('[Engine] Gitleaks failed, trying TruffleHog:', err.message);
+          logger.warn('[Engine] Gitleaks scan error in auto mode:', err.message);
         }
       }
 
-      // 2nd priority: TruffleHog (deeper detection, verifies credentials)
-      if (await truffleHog.isAvailable()) {
-        try {
-          const findings = await truffleHog.scan(targetDir);
-          return { findings, engineUsed: 'trufflehog' };
-        } catch (err) {
-          logger.warn('[Engine] TruffleHog failed, falling back to builtin:', err.message);
-        }
+      // 2nd: Run built-in heuristic scanner (catches MongoDB/PostgreSQL URIs, AI API keys)
+      try {
+        const biFindings = builtin.scan(targetDir);
+        results.push(...biFindings);
+        enginesUsed.push('builtin');
+      } catch (err) {
+        logger.warn('[Engine] Built-in scanner error in auto mode:', err.message);
       }
 
-      // 3rd priority: Built-in regex scanner (always available, no binary needed)
-      logger.warn('[Engine] No CLI scanner available — using built-in heuristic scanner.');
-      return { findings: builtin.scan(targetDir), engineUsed: 'builtin' };
+      const deduplicated = deduplicateFindings(results);
+      return {
+        findings: deduplicated,
+        engineUsed: enginesUsed.join('+') || 'builtin'
+      };
     }
   }
 }

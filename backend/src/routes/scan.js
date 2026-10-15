@@ -3,6 +3,7 @@ const { validateGitHubUrl } = require('../utils/validator');
 const { scanRepository } = require('../services/scanner');
 const { sendScanNotification } = require('../services/notifier');
 const { saveReport, getProviderName } = require('../services/storage/storageRouter');
+const { saveScanRecord } = require('./scansHistory');
 const { validateBody, SCAN_SCHEMA } = require('../middlewares/validateSchema');
 const logger = require('../utils/logger');
 
@@ -36,10 +37,21 @@ router.post('/scan', validateBody(SCAN_SCHEMA), async (req, res) => {
     // 2. Perform isolated clone & scan
     const result = await scanRepository(validation.sanitizedUrl, validation.repo);
 
-    // 3. Save masked report to cloud storage (fire-and-forget — never blocks response)
+    // 3. Save scan to Prisma database / history
+    const dbRecord = await saveScanRecord({
+      repoUrl: validation.sanitizedUrl,
+      repoName: validation.repo,
+      status: result.findings && result.findings.length > 0 ? 'completed' : 'clean',
+      findingsCount: result.findings ? result.findings.length : 0,
+      findings: result.findings || [],
+      scanDurationMs: result.scanDurationMs,
+      isDemo: false,
+    }).catch(() => null);
+
+    // 4. Save masked report to cloud storage (fire-and-forget — never blocks response)
     const storagePromise = saveReport(result).catch(() => ({ stored: false }));
 
-    // 4. Fire-and-forget Slack/Discord notification (never blocks response)
+    // 5. Fire-and-forget Slack/Discord notification (never blocks response)
     sendScanNotification({
       repo: validation.repo,
       source: 'Manual Scan (Dashboard)',
@@ -58,6 +70,7 @@ router.post('/scan', validateBody(SCAN_SCHEMA), async (req, res) => {
       success: true,
       data: {
         ...result,
+        id: dbRecord?.id || result.scanId,
         report: storageResult.stored
           ? {
               stored: true,

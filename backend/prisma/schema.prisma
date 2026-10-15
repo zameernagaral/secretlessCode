@@ -26,3 +26,18 @@ model Project {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+model Scan {
+  id             String    @id @default(uuid())
+  repoUrl        String
+  repoName       String
+  status         String    @default("completed")
+  findingsCount  Int       @default(0)
+  findings       Json
+  scanDurationMs Int?
+  isDemo         Boolean   @default(false)
+  ipHash         String?
+  userId         String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}

@@ -59,7 +59,10 @@ async function scanRepository(repoUrl, repoName) {
       await runCommand(
         'git',
         ['clone', '--depth', '1', '--single-branch', repoUrl, tempDir],
-        { timeout: CLONE_TIMEOUT_MS }
+        {
+          timeout: CLONE_TIMEOUT_MS,
+          env: { ...process.env, GIT_TERMINAL_PROMPT: '0' }
+        }
       );
     } catch (cloneErr) {
       const msg = cloneErr.message || '';
@@ -67,7 +70,14 @@ async function scanRepository(repoUrl, repoName) {
         throw new Error('Repository clone timed out. The repository might be too large or the network is slow.');
       }
       const stderr = cloneErr.stderr || '';
-      if (stderr.includes('Repository not found') || stderr.includes('Authentication failed') || stderr.includes('not found')) {
+      if (
+        stderr.includes('Repository not found') ||
+        stderr.includes('Authentication failed') ||
+        stderr.includes('not found') ||
+        stderr.includes('could not read Username') ||
+        stderr.includes('No such device or address') ||
+        stderr.includes('terminal prompts disabled')
+      ) {
         throw new Error('GitHub repository not found or is private. Only public repositories are supported.');
       }
       throw new Error(`Failed to clone repository: ${stderr || msg}`);

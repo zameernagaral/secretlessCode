@@ -1,0 +1,846 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+ * Secretless Code — Mobile-First Stylesheet (WIREFRAMES.md Specification)
+ * Strictly tokens.css variables only. Zero raw hex, zero raw px in properties.
+ * Zero animations (static styling).
+ * ───────────────────────────────────────────────────────────────────────────── */
+
+/* ── Layout Container & Shell ── */
+.container {
+  max-width: var(--container-max-width);
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--gutter-mobile);
+  padding-right: var(--gutter-mobile);
+  width: 100%;
+}
+
+@media (min-width: 48rem) {
+  .container {
+    padding-left: var(--gutter-desktop);
+    padding-right: var(--gutter-desktop);
+  }
+}
+
+/* ── Accessible Skip Link ── */
+.skipLink {
+  position: absolute;
+  top: calc(var(--space-24) * -1);
+  left: var(--space-4);
+  padding: var(--space-2) var(--space-4);
+  background-color: var(--color-ink);
+  color: var(--color-background);
+  font-family: var(--font-mono);
+  font-size: var(--text-caption);
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  z-index: 1000;
+  text-decoration: none;
+}
+
+.skipLink:focus-visible {
+  top: var(--space-4);
+  outline: var(--border-ink);
+  outline-offset: var(--space-1);
+}
+
+/* ── 1. Global Navigation Bar (h: 56px, border-bottom rule) ── */
+.header {
+  border-bottom: var(--border-rule);
+  background-color: var(--color-background);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.headerInner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--header-height);
+  gap: var(--space-4);
+}
+
+.brandLink {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-ink);
+  text-decoration: none;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--text-body);
+  letter-spacing: var(--tracking-body);
+  white-space: nowrap;
+}
+
+.brandLink:focus-visible {
+  outline: var(--border-ink);
+  outline-offset: var(--space-1);
+}
+
+.navList {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  list-style: none;
+}
+
+.navLink {
+  color: var(--color-muted-ink);
+  font-family: var(--font-mono);
+  font-size: var(--text-caption);
+  text-decoration: none;
+  display: none;
+}
+
+@media (min-width: 56rem) {
+  .navLink {
+    display: block;
+  }
+}
+
+.navLink:hover {
+  color: var(--color-ink);
+}
+
+.navLink:focus-visible {
+  outline: var(--border-ink);
+  outline-offset: var(--space-1);
+}
+
+.navActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  list-style: none;
+}
+
+.authBtn {
+  background-color: transparent;
+  border: var(--border-rule);
+  color: var(--color-ink);
+  font-family: var(--font-mono);
+  font-size: var(--text-caption);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.authBtn:hover {
+  background-color: var(--color-surface);
+  border: var(--border-muted);
+}
+
+.authBtn:focus-visible {
+  outline: var(--border-ink);
+  outline-offset: var(--space-1);
+}
+
+.primaryCta {
+  background-color: var(--color-ink);
+  color: var(--color-background);
+  font-family: var(--font-mono);
+  font-size: var(--text-caption);
+  font-weight: 600;
+  padding: var(--space-1) var(--space-4);
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  border: var(--border-ink);
+  cursor: pointer;
+  white-space: nowrap;
+  display: none;
+}
+
+@media (min-width: 30rem) {
+  .primaryCta {
+    display: inline-flex;
+  }
+}
+
+.primaryCta:hover {
+  opacity: 0.9;
+}
+
+.primaryCta:focus-visible {
+  outline: var(--border-ink);
+  outline-offset: var(--space-1);
+}
+
+/* ── 2. Hero Section (Mobile Stacks Scan First; Desktop Asymmetric 5:7) ── */
+.heroSection {
+  padding-top: var(--space-8);
+  padding-bottom: var(--space-12);
+  border-bottom: var(--border-rule);
+}
+
+@media (min-width: 64rem) {
+  .heroSection {
+    padding-top: var(--space-16);
+    padding-bottom: var(--space-20);
+  }
+}
+
+/* Mobile-first: column-reverse so Signature Scan console stacks FIRST at 390px */
+.heroGrid {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: var(--space-8);
+}
+
+@media (min-width: 64rem) {
+  .heroGrid {
+    display: grid;
+    grid-template-columns: 5fr 7fr;
+    gap: var(--space-12);
+    align-items: start;
+  }
+}
+
+.heroContent {
+  display: flex;
+  flex-direction: column;
+}
+
+.specTag {
+  font-family: var(--font-mono);
+  font-size: var(--text-micro);
+  letter-spacing: var(--tracking-micro);
+  color: var(--color-muted-ink);
+  margin-bottom: var(--space-3);
+  text-transform: uppercase;
+}
+
+.heroTitle {
+  font-family: var(--font-display);
+  font-size: var(--text-display);
+  line-height: var(--leading-display);
+  letter-spacing: var(--tracking-display);
+  font-weight: 600;
+  color: var(--color-ink);
+  margin-bottom: var(--space-4);
+  text-wrap: balance;
+}
+
+.heroLead {
+  font-family: var(--font-body);
+  font-size: var(--text-body-lead);
+  line-height: var(--leading-body-lead);
+  letter-spacing: var(--tracking-body-lead);
+  color: var(--color-muted-ink);
+  margin-bottom: var(--space-6);
+  max-width: 65ch;
+}
+
+.trustList {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-bottom: var(--space-6);
+}
+
+.trustItem {
+  font-family: var(--font-mono);
+  font-size: var(--text-caption);
+  line-height: var(--leading-caption);
+  color: var(--color-ink);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.trustItem::before {
+  content: "[x]";
+  color: var(--color-muted-ink);
+}
+
+.trustLink {
+  font-family: var(--font-mono);
+  font-size: var(--text-caption);
+  line-height: var(--leading-caption);
+  color: var(--color-muted-ink);
+  text-decoration: none;
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  border-bottom: 1px dashed var(--color-rule);
+  padding-bottom: 2px;
+  transition: color 0.12s var(--ease-mechanical), border-color 0.12s var(--ease-mechanical);
+}
+
+.trustLink:hover {
+  color: var(--color-ink);
+  border-bottom-color: var(--color-ink);
+}
+
+.trustLinkArrow {
+  font-family: var(--font-mono);
+  transition: transform 0.12s var(--ease-mechanical);
+}
+
+.trustLink:hover .trustLinkArrow {
+  transform: translateX(3px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trustLink,
+  .trustLinkArrow {
+    transition: none;
+    transform: none;
+  }
+  .trustLink:hover .trustLinkArrow {
+    transform: none;
+  }
+}
+
+.trustLink:focus-visible {
+  outline: var(--border-ink);
+  outline-offset: var(--space-1);
+}
+
+/* ── 3. Signature Element Placeholder (Exact Size from Wireframe) ── */
+.signatureWrapper {
+  width: 100%;
+}
+
+.signaturePlaceholder {
+  background-color: var(--color-surface);
+  border: var(--border-rule);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-panel);
+  width: 100%;
+  min-height: var(--signature-height-mobile);
+  display: flex;
+  flex-direction: column;
+}
+
+@media (min-width: 64rem) {
+  .signaturePlaceholder {
+    min-height: var(--signature-height-desktop);
+  }
+}
+
+.signatureHeader {
+  border-bottom: var(--border-rule);
+  padding: var(--space-3) var(--space-4);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: var(--color-background);
+}
+
+.signatureTitle {
+  font-family: var(--font-mono);
+  font-size: var(--text-caption);
+  letter-spacing: var(--tracking-caption);
+  color: var(--color-ink);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.signatureStatus {
+  font-family: var(--font-mono);
+  font-size: var(--text-micro);
+  color: var(--color-muted-ink);
+  text-transform: uppercase;
+}
+
+.signatureBody {
+  padding: var(--space-6);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.signatureLabelBlock {
+  border: var(--border-rule);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-background);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.signatureTag {
+  font-family: var(--font-mono);
+  font-size: var(--text-micro);
+  letter-spacing: var(--tracking-micro);
+  color: var(--color-muted-ink);
+}
+
+.signatureDim {
+  font-family: var(--font-mono);
+  font-size: var(--text-code);
+  color: var(--color-ink);
+}
+
+.signatureSpecimenPreview {
+  font-family: var(--font-mono);
+  font-size: var(--text-caption);
+  color: var(--color-muted-ink);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.signatureSecretToken {
+  color: var(--color-ink);
+  display: inline-block;
+  border-bottom: var(--border-signal);
+  align-self: flex-start;
+}
+
+/* ── 4. Feature 2: Remediation Guide (12-col Stretch, Tabs, 2 Steps) ── */
+.section {
+  padding-top: var(--space-12);
+  padding-bottom: var(--space-12);
+  border-bottom: var(--border-rule);
+}
+
+@media (min-width: 48rem) {
+  .section {
+    padding-top: var(--space-16);
+    padding-bottom: var(--space-20);
+  }
+}
+
+.sectionHeader {
+  margin-bottom: var(--space-8);
+}
+
+.sectionTitle {
+  font-family: var(--font-display);
+  font-size: var(--text-heading-md);
+  line-height: var(--leading-heading-md);
+  letter-spacing: var(--tracking-heading-md);
+  font-weight: 600;
+  color: var(--color-ink);
+  margin-bottom: var(--space-3);
+  text-wrap: balance;
+}
+
+.sectionLead {
+  font-family: var(--font-body);
+  font-size: var(--text-body);
+  line-height: var(--leading-body);
+  letter-spacing: var(--tracking-body);
+  color: var(--color-muted-ink);
+  max-width: 65ch;
+}
+
+.tabScrollWrapper {
+  position: relative;
+  width: 100%;
+}
+
+@media (max-width: 47.9375rem) {
+  .tabScrollWrapper::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: var(--space-2);
+    width: var(--space-8);
+    background: linear-gradient(to right, transparent, var(--color-background));
+    pointer-events: none;
+  }
+}
+
+.tabList {
+  display: flex;
+  gap: var(--space-2);
+  list-style: none;
+  overflow-x: auto;
+  border-bottom: var(--border-rule);
+  padding-bottom: var(--space-2);
+  margin-bottom: var(--space-6);
+  scrollbar-width: none;
+}
+
+.tabList::-webkit-scrollbar {
+  display: none;
+}
+
+.tabBtn {
+  background-color: transparent;
+  border: var(--border-rule);
+  color: var(--color-muted-ink);
+  font-family: var(--font-mono);
+  font-size: var(--text-caption);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.tabBtnActive {
+  background-color: var(--color-surface);
+  color: var(--color-ink);
+  border: var(--border-ink);
+  font-weight: 600;
+}
+
+.tabBtn:focus-visible {
+  outline: var(--border-ink);
+  outline-offset: var(--space-1);
+}
+
+.remediationPanel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+@media (min-width: 48rem) {
+  .remediationPanel {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--space-6);
+  }
+}
+
+.stepCard {
+  background-color: var(--color-surface);
+  border: var(--border-rule);
+  border-radius: var(--radius-card);
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.stepTitle {
+  font-family: var(--font-display);
+  font-size: var(--text-heading-sm);
+  line-height: var(--leading-heading-sm);
+  letter-spacing: var(--tracking-heading-sm);
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.stepBody {
+  font-family: var(--font-body);
+  font-size: var(--text-body);
+  line-height: var(--leading-body);
+  letter-spacing: var(--tracking-body);
+  color: var(--color-muted-ink);
+  max-width: 65ch;
+}
+
+.codeBlock {
+  background-color: var(--color-background);
+  border: var(--border-rule);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3);
+  font-family: var(--font-mono);
+  font-size: var(--text-code);
+  line-height: var(--leading-code);
+  color: var(--color-ink);
+  overflow-x: auto;
+}
+
+.copyRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.copyBtn {
+  background-color: var(--color-background);
+  border: var(--border-rule);
+  color: var(--color-ink);
+  font-family: var(--font-mono);
+  font-size: var(--text-caption);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.copyBtn:hover {
+  border: var(--border-muted);
+}
+
+.copyBtn:focus-visible {
+  outline: var(--border-ink);
+  outline-offset: var(--space-1);
+}
+
+.copyStatus {
+  font-family: var(--font-mono);
+  font-size: var(--text-caption);
+  color: var(--color-muted-ink);
+}
+
+.warningCallout {
+  font-family: var(--font-mono);
+  font-size: var(--text-caption);
+  line-height: var(--leading-caption);
+  color: var(--color-muted-ink);
+  border-left: var(--border-rule);
+  padding-left: var(--space-3);
+  margin-top: var(--space-2);
+}
+
+/* ── 5. Feature 3: Pricing & Capacity Tiers (3 Cards) ── */
+.pricingToggleGroup {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-8);
+  font-family: var(--font-mono);
+  font-size: var(--text-caption);
+  color: var(--color-ink);
+  cursor: pointer;
+}
+
+.pricingToggleInput {
+  cursor: pointer;
+}
+
+.pricingToggleInput:focus-visible {
+  outline: var(--border-ink);
+  outline-offset: var(--space-1);
+}
+
+.pricingGrid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+@media (min-width: 48rem) {
+  .pricingGrid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-6);
+  }
+}
+
+.pricingCard {
+  background-color: var(--color-surface);
+  border: var(--border-rule);
+  border-radius: var(--radius-card);
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.pricingCardPro {
+  border: var(--border-muted);
+}
+
+.tierHeader {
+  margin-bottom: var(--space-4);
+}
+
+.tierName {
+  font-family: var(--font-display);
+  font-size: var(--text-heading-sm);
+  font-weight: 600;
+  color: var(--color-ink);
+  margin-bottom: var(--space-2);
+}
+
+.tierPrice {
+  font-family: var(--font-mono);
+  font-size: var(--text-heading-md);
+  font-weight: 600;
+  color: var(--color-ink);
+  margin-bottom: var(--space-1);
+}
+
+.tierSubtitle {
+  font-family: var(--font-body);
+  font-size: var(--text-caption);
+  color: var(--color-muted-ink);
+}
+
+.tierFeatureList {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+  margin-bottom: var(--space-6);
+  flex: 1;
+}
+
+.tierFeatureItem {
+  font-family: var(--font-mono);
+  font-size: var(--text-caption);
+  color: var(--color-ink);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+.tierFeatureItem::before {
+  content: "+";
+  color: var(--color-muted-ink);
+}
+
+.tierBtn {
+  width: 100%;
+  background-color: var(--color-background);
+  border: var(--border-rule);
+  color: var(--color-ink);
+  font-family: var(--font-mono);
+  font-size: var(--text-caption);
+  font-weight: 600;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  text-align: center;
+}
+
+.tierBtn:hover {
+  border: var(--border-muted);
+}
+
+.tierBtn:focus-visible {
+  outline: var(--border-ink);
+  outline-offset: var(--space-1);
+}
+
+.tierBtnPro {
+  background-color: var(--color-ink);
+  color: var(--color-background);
+  border: var(--border-ink);
+}
+
+.tierBtnPro:hover {
+  opacity: 0.9;
+}
+
+/* ── 6. Error & Failure States Specimen ── */
+.alertList {
+  list-style: none;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+@media (min-width: 48rem) {
+  .alertList {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-4);
+  }
+}
+
+.alertItem {
+  background-color: var(--color-surface);
+  border: var(--border-rule);
+  border-radius: var(--radius-sm);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.alertCode {
+  font-family: var(--font-mono);
+  font-size: var(--text-micro);
+  letter-spacing: var(--tracking-micro);
+  color: var(--color-muted-ink);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.alertMessage {
+  font-family: var(--font-mono);
+  font-size: var(--text-caption);
+  line-height: var(--leading-caption);
+  color: var(--color-ink);
+  margin: 0;
+}
+
+.architectureBox {
+  background-color: var(--color-surface);
+  border: var(--border-rule);
+  border-radius: var(--radius-card);
+  padding: var(--space-6);
+  margin-top: var(--space-12);
+  margin-bottom: var(--space-12);
+}
+
+.archTitle {
+  font-family: var(--font-display);
+  font-size: var(--text-heading-sm);
+  font-weight: 600;
+  color: var(--color-ink);
+  margin-bottom: var(--space-2);
+}
+
+.archBody {
+  font-family: var(--font-body);
+  font-size: var(--text-body);
+  line-height: var(--leading-body);
+  color: var(--color-muted-ink);
+  max-width: 65ch;
+}
+
+/* ── 7. Global Footer (Nav links, copyright) ── */
+.footer {
+  border-top: var(--border-rule);
+  background-color: var(--color-background);
+  padding-top: var(--space-8);
+  padding-bottom: var(--space-12);
+}
+
+.footerInner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  justify-content: space-between;
+}
+
+@media (min-width: 48rem) {
+  .footerInner {
+    flex-direction: row;
+    align-items: center;
+  }
+}
+
+.footerBrand {
+  font-family: var(--font-display);
+  font-size: var(--text-code);
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.footerCopyright {
+  font-family: var(--font-mono);
+  font-size: var(--text-caption);
+  color: var(--color-muted-ink);
+}
+
+.footerNavList {
+  display: flex;
+  gap: var(--space-4);
+  list-style: none;
+  flex-wrap: wrap;
+}
+
+.footerLink {
+  font-family: var(--font-mono);
+  font-size: var(--text-caption);
+  color: var(--color-muted-ink);
+  text-decoration: none;
+}
+
+.footerLink:hover {
+  color: var(--color-ink);
+}
+
+.footerLink:focus-visible {
+  outline: var(--border-ink);
+  outline-offset: var(--space-1);
+}

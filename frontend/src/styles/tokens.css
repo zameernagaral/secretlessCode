@@ -71,13 +71,23 @@
   --gutter-desktop: 48px;
   --section-gap-desktop: 96px;
   --section-gap-mobile: 48px;
+  --header-height: 56px;
+  --signature-width-desktop: 680px;
+  --signature-height-desktop: 440px;
+  --signature-height-mobile: 340px;
+  --hero-column-width: 500px;
 
   /* ── 4. Shapes & Elevation ────────────────────────────────────────────────── */
   --radius-sharp: 0px;
   --radius-sm: 2px;
   --radius-card: 4px;
 
+  --border-width-1: 1px;
+  --border-width-2: 2px;
   --border-rule: 1px solid var(--color-rule);
+  --border-ink: 1px solid var(--color-ink);
+  --border-muted: 1px solid var(--color-muted-ink);
+  --border-signal: 2px solid var(--color-signal);
   --shadow-none: none;
   --shadow-panel: 0 4px 16px rgba(0, 0, 0, 0.4);
 

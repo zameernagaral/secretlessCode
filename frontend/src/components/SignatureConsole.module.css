@@ -1,0 +1,380 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+ * SignatureConsole.module.css
+ * Precision minimal instrument panel for the Signature element.
+ * Strictly tokens.css variables only. Zero raw hex, zero raw px in property declarations.
+ * ───────────────────────────────────────────────────────────────────────────── */
+
+.card {
+  position: relative;
+  background-color: var(--color-surface);
+  border: var(--border-rule);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-panel);
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.header {
+  border-bottom: var(--border-rule);
+  padding: var(--space-3) var(--space-4);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: var(--color-background);
+}
+
+.title {
+  font-family: var(--font-mono);
+  font-size: var(--text-caption);
+  letter-spacing: var(--tracking-caption);
+  color: var(--color-ink);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status {
+  font-family: var(--font-mono);
+  font-size: var(--text-micro);
+  color: var(--color-muted-ink);
+  text-transform: uppercase;
+}
+
+.statusActive {
+  color: var(--color-ink);
+}
+
+.statusError {
+  color: var(--color-signal);
+}
+
+.body {
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+@media (min-width: 48rem) {
+  .body {
+    padding: var(--space-6);
+  }
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.inputRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+@media (min-width: 40rem) {
+  .inputRow {
+    flex-direction: row;
+  }
+}
+
+.input {
+  flex: 1;
+  background-color: var(--color-background);
+  border: var(--border-rule);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  font-family: var(--font-mono);
+  font-size: var(--text-code);
+  color: var(--color-ink);
+}
+
+.input:focus {
+  border: var(--border-ink);
+  outline: none;
+}
+
+.input:focus-visible {
+  outline: var(--border-ink);
+  outline-offset: var(--space-1);
+}
+
+.input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.submitBtn {
+  background-color: var(--color-ink);
+  color: var(--color-background);
+  font-family: var(--font-mono);
+  font-size: var(--text-caption);
+  font-weight: 600;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-sm);
+  border: var(--border-ink);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.submitBtn:hover {
+  opacity: 0.9;
+}
+
+.submitBtn:focus-visible {
+  outline: var(--border-ink);
+  outline-offset: var(--space-1);
+}
+
+.submitBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.demoBtn {
+  align-self: flex-start;
+  background-color: transparent;
+  border: none;
+  color: var(--color-muted-ink);
+  font-family: var(--font-mono);
+  font-size: var(--text-caption);
+  cursor: pointer;
+  padding: var(--space-1) 0;
+  text-decoration: underline;
+}
+
+.demoBtn:hover {
+  color: var(--color-ink);
+}
+
+.demoBtn:focus-visible {
+  outline: var(--border-ink);
+  outline-offset: var(--space-1);
+}
+
+.demoBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ── Failure & Alert States ── */
+.alertBox {
+  background-color: var(--color-background);
+  border: var(--border-rule);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-4);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.alertText {
+  font-family: var(--font-mono);
+  font-size: var(--text-caption);
+  color: var(--color-signal);
+}
+
+.retryBtn {
+  background-color: var(--color-surface);
+  border: var(--border-rule);
+  color: var(--color-ink);
+  font-family: var(--font-mono);
+  font-size: var(--text-micro);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.retryBtn:hover {
+  border: var(--border-muted);
+}
+
+.retryBtn:focus-visible {
+  outline: var(--border-ink);
+  outline-offset: var(--space-1);
+}
+
+/* ── No JS Fallback Banner ── */
+.noJsBanner {
+  background-color: var(--color-background);
+  border: var(--border-rule);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  font-family: var(--font-mono);
+  font-size: var(--text-caption);
+  color: var(--color-muted-ink);
+}
+
+/* ── Terminal Log Specimen ── */
+.terminalBox {
+  background-color: var(--color-background);
+  border: var(--border-rule);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3);
+  font-family: var(--font-mono);
+  font-size: var(--text-caption);
+  line-height: var(--leading-code);
+  color: var(--color-muted-ink);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.terminalLabel {
+  font-family: var(--font-mono);
+  font-size: var(--text-micro);
+  text-transform: uppercase;
+  color: var(--color-muted-ink);
+  margin-bottom: var(--space-1);
+}
+
+.terminalLine {
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.terminalLineActive {
+  color: var(--color-ink);
+}
+
+/* ── Findings Drawer (Only location with Signal Amber Underline) ── */
+.findingsSection {
+  border-top: var(--border-rule);
+  padding-top: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.findingsHeading {
+  font-family: var(--font-mono);
+  font-size: var(--text-micro);
+  text-transform: uppercase;
+  color: var(--color-muted-ink);
+}
+
+.findingsList {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.findingCard {
+  background-color: var(--color-background);
+  border: var(--border-rule);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.findingHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.findingTitle {
+  font-family: var(--font-display);
+  font-size: var(--text-code);
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.findingLocation {
+  font-family: var(--font-mono);
+  font-size: var(--text-caption);
+  color: var(--color-muted-ink);
+}
+
+.findingToken {
+  font-family: var(--font-mono);
+  font-size: var(--text-code);
+  color: var(--color-ink);
+  background-color: var(--color-surface);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sharp);
+  display: inline-block;
+  align-self: flex-start;
+  border-bottom: var(--border-signal);
+}
+
+.findingActions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.actionBtn {
+  background-color: var(--color-surface);
+  border: var(--border-rule);
+  color: var(--color-ink);
+  font-family: var(--font-mono);
+  font-size: var(--text-caption);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.actionBtn:hover {
+  border: var(--border-muted);
+}
+
+.actionBtn:focus-visible {
+  outline: var(--border-ink);
+  outline-offset: var(--space-1);
+}
+
+/* ── Clean State Specimen ── */
+.cleanBox {
+  background-color: var(--color-background);
+  border: var(--border-rule);
+  border-radius: var(--radius-sm);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.cleanTitle {
+  font-family: var(--font-display);
+  font-size: var(--text-code);
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.cleanBody {
+  font-family: var(--font-body);
+  font-size: var(--text-caption);
+  color: var(--color-muted-ink);
+}
+
+.cleanBtn {
+  align-self: flex-start;
+  background-color: var(--color-surface);
+  border: var(--border-rule);
+  color: var(--color-ink);
+  font-family: var(--font-mono);
+  font-size: var(--text-caption);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.cleanBtn:hover {
+  border: var(--border-muted);
+}
+
+.cleanBtn:focus-visible {
+  outline: var(--border-ink);
+  outline-offset: var(--space-1);
+}

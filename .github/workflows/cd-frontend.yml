@@ -66,6 +66,7 @@ jobs:
         run: npm install --global vercel@latest
 
       - name: Pull Vercel project settings & env
+        if: ${{ secrets.VERCEL_TOKEN != '' }}
         run: |
           vercel pull --yes \
             --environment=${{ github.ref == 'refs/heads/main' && 'production' || 'preview' }} \
@@ -75,6 +76,7 @@ jobs:
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
       - name: Build project
+        if: ${{ secrets.VERCEL_TOKEN != '' }}
         run: |
           vercel build ${{ github.ref == 'refs/heads/main' && '--prod' || '' }} \
             --token=${{ secrets.VERCEL_TOKEN }}
@@ -84,6 +86,7 @@ jobs:
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL || 'https://secretless-backend.onrender.com' }}
 
       - name: Deploy to Vercel
+        if: ${{ secrets.VERCEL_TOKEN != '' }}
         id: deploy
         run: |
           DEPLOY_URL=$(vercel deploy --prebuilt \

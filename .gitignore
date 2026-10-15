@@ -55,8 +55,16 @@ Thumbs.db
 *.swp
 *.swo
 
-# Test coverage
+# Test coverage & reports
 coverage/
+.lighthouseci/
+.playwright-mcp/
+playwright-report/
+test-results/
+frontend/playwright-report/
+frontend/test-results/
+frontend/tsconfig.tsbuildinfo
+*.tsbuildinfo
 
 # Docker
 .docker/

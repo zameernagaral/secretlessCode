@@ -1,352 +1,600 @@
-import React from 'react';
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { motion, useReducedMotion } from 'framer-motion';
+import styles from './page.module.css';
+import SignatureConsole from '../components/SignatureConsole';
+import AuthModal from '../components/AuthModal';
+
+type ProviderKey = 'aws' | 'stripe' | 'github' | 'openai' | 'mongodb' | 'ssh';
+
+interface ProviderSpec {
+  name: string;
+  step1: string;
+  step2Command: string;
+}
+
+const PROVIDERS: Record<ProviderKey, ProviderSpec> = {
+  aws: {
+    name: 'AWS IAM',
+    step1:
+      'Open your provider dashboard, deactivate the exposed credential ID, and generate a new key pair with updated environment variables.',
+    step2Command:
+      'git-filter-repo --invert-paths --path backend/.env --force',
+  },
+  stripe: {
+    name: 'Stripe',
+    step1:
+      'Open your provider dashboard, deactivate the exposed credential ID, and generate a new key pair with updated environment variables.',
+    step2Command:
+      'git-filter-repo --invert-paths --path src/config/stripe.ts --force',
+  },
+  github: {
+    name: 'GitHub PAT',
+    step1:
+      'Open your provider dashboard, deactivate the exposed credential ID, and generate a new key pair with updated environment variables.',
+    step2Command:
+      'git-filter-repo --invert-paths --path .github/workflows --force',
+  },
+  openai: {
+    name: 'OpenAI',
+    step1:
+      'Open your provider dashboard, deactivate the exposed credential ID, and generate a new key pair with updated environment variables.',
+    step2Command:
+      'git-filter-repo --invert-paths --path .env.production --force',
+  },
+  mongodb: {
+    name: 'MongoDB URI',
+    step1:
+      'Open your provider dashboard, deactivate the exposed credential ID, and generate a new key pair with updated environment variables.',
+    step2Command:
+      'git-filter-repo --invert-paths --path server/db.js --force',
+  },
+  ssh: {
+    name: 'SSH private key',
+    step1:
+      'Open your provider dashboard, deactivate the exposed credential ID, and generate a new key pair with updated environment variables.',
+    step2Command:
+      'git-filter-repo --invert-paths --path id_rsa --force',
+  },
+};
+
+const MECHANICAL_EASE = [0.16, 1, 0.3, 1] as const;
 
 export default function Home() {
+  const [activeProvider, setActiveProvider] = useState<ProviderKey>('aws');
+  const [isAnnual, setIsAnnual] = useState(false);
+  const [copiedText, setCopiedText] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState<{ name: string; email: string } | null>(null);
+
+  const shouldReduceMotion = useReducedMotion();
+
+  useEffect(() => {
+    const stored = localStorage.getItem('secretless_user');
+    if (stored) {
+      try {
+        setCurrentUser(JSON.parse(stored));
+      } catch {}
+    }
+  }, []);
+
+  const scrollToScanner = () => {
+    const input = document.getElementById('target-input');
+    if (input) {
+      input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      input.focus();
+    }
+  };
+
+  const handleCopy = (cmd: string) => {
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(cmd);
+      setCopiedText(true);
+      setTimeout(() => setCopiedText(false), 2000);
+    }
+  };
+
   return (
     <>
       {/* ── Accessible Skip Link ── */}
-      <a href="#main-content">Skip to content</a>
+      <a href="#main-content" className={styles.skipLink}>
+        Skip to content
+      </a>
 
       {/* ── 1. Global Navigation Bar ── */}
-      <header>
-        <a href="/">
-          <img
-            src="/icon.svg"
-            alt="Secretless Code emblem"
-            width={24}
-            height={24}
-          />
-          <span>Secretless Code</span>
-        </a>
+      <header className={styles.header}>
+        <div className={`${styles.container} ${styles.headerInner}`}>
+          <a href="/" className={styles.brandLink}>
+            <img
+              src="/icon.svg"
+              alt="Secretless Code emblem"
+              width={24}
+              height={24}
+            />
+            <span>Secretless Code</span>
+          </a>
 
-        <nav aria-label="Primary navigation">
-          <ul>
+          <nav aria-label="Primary navigation">
+            <ul className={styles.navList}>
+              <li>
+                <a href="#how-it-works" className={styles.navLink}>
+                  How it works
+                </a>
+              </li>
+              <li>
+                <a href="#remediation" className={styles.navLink}>
+                  Remediation
+                </a>
+              </li>
+              <li>
+                <a href="#pricing" className={styles.navLink}>
+                  Pricing
+                </a>
+              </li>
+              <li>
+                <Link href="/dashboard" className={styles.navLink}>
+                  Dashboard
+                </Link>
+              </li>
+            </ul>
+          </nav>
+
+          <ul className={styles.navActions}>
             <li>
-              <a href="#how-it-works">How it works</a>
+              {currentUser ? (
+                <Link href="/dashboard" className={styles.authBtn}>
+                  {currentUser.name}
+                </Link>
+              ) : (
+                <motion.button
+                  type="button"
+                  onClick={() => setIsAuthModalOpen(true)}
+                  whileTap={{ y: shouldReduceMotion ? 0 : 1 }}
+                  transition={{ duration: 0.12, ease: MECHANICAL_EASE }}
+                  className={styles.authBtn}
+                >
+                  Sign in
+                </motion.button>
+              )}
             </li>
             <li>
-              <a href="#remediation">Remediation</a>
-            </li>
-            <li>
-              <a href="#pricing">Pricing</a>
-            </li>
-            <li>
-              <button type="button">Sign in</button>
-            </li>
-            <li>
-              <a href="#live-scan-console">Scan repository</a>
+              <motion.button
+                type="button"
+                onClick={scrollToScanner}
+                whileTap={{ y: shouldReduceMotion ? 0 : 1 }}
+                transition={{ duration: 0.12, ease: MECHANICAL_EASE }}
+                className={styles.primaryCta}
+              >
+                Scan repository
+              </motion.button>
             </li>
           </ul>
-        </nav>
+        </div>
       </header>
 
       {/* ── Main Landmark ── */}
       <main id="main-content">
         {/* ── 2. Hero Section ── */}
-        <section id="how-it-works" aria-labelledby="hero-title">
-          <p>SPEC // GITLEAKS ENGINE v8</p>
-          <h1 id="hero-title">
-            Find leaked API keys in Git before they are exploited.
-          </h1>
-          <p>
-            Secretless Code clones public repositories into an isolated memory
-            buffer, runs 140+ Gitleaks detection rules, and prints the exact
-            terminal commands to revoke and purge them from git history.
-          </p>
+        <section id="how-it-works" className={styles.heroSection}>
+          <div className={`${styles.container} ${styles.heroGrid}`}>
+            {/* Left 5 Columns on Desktop (500px) */}
+            <div className={styles.heroContent}>
+              <p className={styles.specTag}>SPEC // GITLEAKS ENGINE v8</p>
+              <h1 id="hero-title" className={styles.heroTitle}>
+                Find leaked API keys in Git before they are exploited.
+              </h1>
+              <p className={styles.heroLead}>
+                Secretless Code clones public repositories into an isolated
+                memory buffer, runs 140+ Gitleaks detection rules, and prints
+                the exact terminal commands to revoke and purge them from git
+                history.
+              </p>
 
-          <ul>
-            <li>Ephemeral RAM-disk clone — code deleted immediately after scan</li>
-            <li>No registration required for public repositories</li>
-            <li>
-              Average scan duration under [NEEDS FACT: benchmark seconds]s
-            </li>
-          </ul>
+              <ul className={styles.trustList}>
+                <li className={styles.trustItem}>
+                  Ephemeral RAM-disk clone — code deleted immediately after scan
+                </li>
+                <li className={styles.trustItem}>
+                  No registration required for public repositories
+                </li>
+                <li className={styles.trustItem}>
+                  Average scan duration under [NEEDS FACT: benchmark seconds]s
+                </li>
+              </ul>
 
-          <a href="#zero-retention-spec">
-            View zero-retention architecture specification
-          </a>
+              <a href="#zero-retention-spec" className={styles.trustLink}>
+                <span>View zero-retention architecture specification</span>
+                <span className={styles.trustLinkArrow} aria-hidden="true">
+                  &rarr;
+                </span>
+              </a>
+            </div>
+
+            {/* Right 7 Columns on Desktop (680px) — Encapsulated Signature Component */}
+            <div className={styles.signatureWrapper}>
+              <SignatureConsole />
+            </div>
+          </div>
         </section>
 
-        {/* ── 3. Signature Element: Instant Sample & Real URL Scanner ── */}
-        <section id="live-scan-console" aria-labelledby="scanner-heading">
-          <h2 id="scanner-heading">Live scan console [RAM buffer]</h2>
+        {/* ── 4. Feature 2: Remediation Guide Specification ── */}
+        <section id="remediation" aria-labelledby="remediation-heading" className={styles.section}>
+          <div className={styles.container}>
+            <div className={styles.sectionHeader}>
+              <h2 id="remediation-heading" className={styles.sectionTitle}>
+                Step-by-step credential revocation and history purge.
+              </h2>
+              <p className={styles.sectionLead}>
+                Deleting a secret in a new commit leaves it visible in Git
+                history. Follow these two steps to rotate credentials and scrub
+                past commit trees.
+              </p>
+            </div>
 
-          <form action="#" method="post">
-            <label htmlFor="target-input">Target repository URL</label>
-            <input
-              id="target-input"
-              name="repoUrl"
-              type="url"
-              placeholder="https://github.com/organization/repository"
-              required
-            />
-            <button type="submit">Scan target</button>
-            <button type="button">
-              Or scan sample vulnerable repository (10s)
-            </button>
-          </form>
+            <nav aria-label="Remediation providers" className={styles.tabScrollWrapper}>
+              <ul className={styles.tabList}>
+                {(['aws', 'stripe', 'github', 'openai', 'mongodb', 'ssh'] as ProviderKey[]).map(
+                  (key) => (
+                    <li key={key}>
+                      <motion.button
+                        type="button"
+                        aria-current={activeProvider === key ? 'true' : 'false'}
+                        onClick={() => setActiveProvider(key)}
+                        whileTap={{ y: shouldReduceMotion ? 0 : 1 }}
+                        transition={{ duration: 0.12, ease: MECHANICAL_EASE }}
+                        className={`${styles.tabBtn} ${
+                          activeProvider === key ? styles.tabBtnActive : ''
+                        }`}
+                      >
+                        {PROVIDERS[key].name}
+                      </motion.button>
+                    </li>
+                  )
+                )}
+              </ul>
+            </nav>
 
-          <section aria-labelledby="terminal-logs-heading">
-            <h3 id="terminal-logs-heading">Scan logs</h3>
-            <output aria-live="polite">
-              <pre><code>[00:01] Fetching shallow commit tree (depth 1)...</code></pre>
-              <pre><code>[00:02] Running Gitleaks rule evaluation (140 signatures)...</code></pre>
-              <pre><code>[00:03] Scan finished. 3 committed secrets detected.</code></pre>
-            </output>
-          </section>
+            {/* Row 3: Remediation Provider Step Panel Switch */}
+            <div className={styles.remediationPanel}>
+              <motion.article
+                key={`step1-${activeProvider}`}
+                aria-labelledby="step-1-heading"
+                initial={{ opacity: 0.4, y: shouldReduceMotion ? 0 : 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: shouldReduceMotion ? 0.01 : 0.24, ease: MECHANICAL_EASE }}
+                className={styles.stepCard}
+              >
+                <h3 id="step-1-heading" className={styles.stepTitle}>
+                  Step 1: Revoke the token immediately
+                </h3>
+                <p className={styles.stepBody}>{PROVIDERS[activeProvider].step1}</p>
+              </motion.article>
 
-          <section aria-labelledby="findings-heading">
-            <h3 id="findings-heading">Findings</h3>
-            <ol>
-              <li>
-                <h4>AWS Access Key ID</h4>
-                <code>AKIA••••••••••••••••3821</code>
-                <p>backend/.env:42</p>
-                <a
-                  href="https://console.aws.amazon.com/iam"
-                  target="_blank"
-                  rel="noopener noreferrer"
+              <motion.article
+                key={`step2-${activeProvider}`}
+                aria-labelledby="step-2-heading"
+                initial={{ opacity: 0.4, y: shouldReduceMotion ? 0 : 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: shouldReduceMotion ? 0.01 : 0.24, ease: MECHANICAL_EASE }}
+                className={styles.stepCard}
+              >
+                <h3 id="step-2-heading" className={styles.stepTitle}>
+                  Step 2: Scrub commit history using git-filter-repo
+                </h3>
+                <pre className={styles.codeBlock} tabIndex={0} aria-label="Git scrubbing command">
+                  <code>{PROVIDERS[activeProvider].step2Command}</code>
+                </pre>
+                <div className={styles.copyRow}>
+                  {/* Row 6: Hardware switch tactile press */}
+                  <motion.button
+                    type="button"
+                    onClick={() => handleCopy(PROVIDERS[activeProvider].step2Command)}
+                    whileTap={{ y: shouldReduceMotion ? 0 : 1 }}
+                    transition={{ duration: 0.12, ease: MECHANICAL_EASE }}
+                    className={styles.copyBtn}
+                  >
+                    Copy command
+                  </motion.button>
+                  {/* Row 4: Clipboard copy feedback */}
+                  {copiedText && (
+                    <motion.p
+                      role="status"
+                      initial={{ opacity: 0, y: shouldReduceMotion ? 0 : -4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: shouldReduceMotion ? 0.01 : 0.12, ease: MECHANICAL_EASE }}
+                      className={styles.copyStatus}
+                    >
+                      Command copied to clipboard
+                    </motion.p>
+                  )}
+                </div>
+                <p className={styles.warningCallout}>
+                  Rewriting commit history alters commit hashes. Coordinate with your
+                  team before pushing with --force.
+                </p>
+              </motion.article>
+            </div>
+          </div>
+        </section>
+
+        {/* ── 5. Feature 3: Pricing Specification ── */}
+        <section id="pricing" aria-labelledby="pricing-heading" className={styles.section}>
+          <div className={styles.container}>
+            <div className={styles.sectionHeader}>
+              <h2 id="pricing-heading" className={styles.sectionTitle}>
+                Transparent capacity tiers.
+              </h2>
+
+              <label className={styles.pricingToggleGroup}>
+                <input
+                  type="checkbox"
+                  name="annual"
+                  checked={isAnnual}
+                  onChange={(e) => setIsAnnual(e.target.checked)}
+                  className={styles.pricingToggleInput}
+                />
+                <span>Billed annually (save 20%)</span>
+              </label>
+            </div>
+
+            <div className={styles.pricingGrid}>
+              {/* Free Tier */}
+              <section aria-labelledby="tier-free-heading" className={styles.pricingCard}>
+                <div>
+                  <div className={styles.tierHeader}>
+                    <h3 id="tier-free-heading" className={styles.tierName}>
+                      Free
+                    </h3>
+                    <p className={styles.tierPrice}>$0</p>
+                    <p className={styles.tierSubtitle}>For public repository triage.</p>
+                  </div>
+                  <ul className={styles.tierFeatureList}>
+                    <li className={styles.tierFeatureItem}>
+                      Unlimited public repository scans
+                    </li>
+                    <li className={styles.tierFeatureItem}>
+                      Anonymous instant execution
+                    </li>
+                    <li className={styles.tierFeatureItem}>
+                      Rate limit: 3 scans per 15 minutes
+                    </li>
+                  </ul>
+                </div>
+                <motion.button
+                  type="button"
+                  onClick={scrollToScanner}
+                  whileTap={{ y: shouldReduceMotion ? 0 : 1 }}
+                  transition={{ duration: 0.12, ease: MECHANICAL_EASE }}
+                  className={styles.tierBtn}
                 >
-                  Revoke token at AWS
-                </a>
-                <button type="button">Copy git-filter-repo command</button>
-              </li>
-              <li>
-                <h4>Stripe Live Secret Key</h4>
-                <code>sk_live_••••••••••••••••8912</code>
-                <p>src/config/stripe.ts:14</p>
-              </li>
-            </ol>
-          </section>
+                  Scan repository
+                </motion.button>
+              </section>
 
-          <section aria-labelledby="clean-scan-heading">
-            <h3 id="clean-scan-heading">Zero exposed secrets detected.</h3>
-            <p>
-              Scanned commit tree passed all Gitleaks pattern evaluations.
+              {/* Pro Tier */}
+              <section
+                aria-labelledby="tier-pro-heading"
+                className={`${styles.pricingCard} ${styles.pricingCardPro}`}
+              >
+                <div>
+                  <div className={styles.tierHeader}>
+                    <h3 id="tier-pro-heading" className={styles.tierName}>
+                      Pro
+                    </h3>
+                    {/* Row 5: Pricing Annual Toggle Recalculation */}
+                    <motion.p
+                      key={isAnnual ? 'annual' : 'monthly'}
+                      initial={{ opacity: 0.5, y: shouldReduceMotion ? 0 : -4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: shouldReduceMotion ? 0.01 : 0.12, ease: MECHANICAL_EASE }}
+                      className={styles.tierPrice}
+                    >
+                      {isAnnual ? '$23 / month' : '$29 / month'}
+                    </motion.p>
+                    <p className={styles.tierSubtitle}>
+                      For independent engineers shipping daily.
+                    </p>
+                  </div>
+                  <ul className={styles.tierFeatureList}>
+                    <li className={styles.tierFeatureItem}>Includes all Free features</li>
+                    <li className={styles.tierFeatureItem}>
+                      Private repository scanning via GitHub OAuth
+                    </li>
+                    <li className={styles.tierFeatureItem}>
+                      Persistent scan history saved in Supabase
+                    </li>
+                    <li className={styles.tierFeatureItem}>
+                      Email notifications via Resend on scan completion
+                    </li>
+                  </ul>
+                </div>
+                <motion.button
+                  type="button"
+                  onClick={() => setIsAuthModalOpen(true)}
+                  whileTap={{ y: shouldReduceMotion ? 0 : 1 }}
+                  transition={{ duration: 0.12, ease: MECHANICAL_EASE }}
+                  className={`${styles.tierBtn} ${styles.tierBtnPro}`}
+                >
+                  Start 14-day trial
+                </motion.button>
+              </section>
+
+              {/* Team Tier */}
+              <section aria-labelledby="tier-team-heading" className={styles.pricingCard}>
+                <div>
+                  <div className={styles.tierHeader}>
+                    <h3 id="tier-team-heading" className={styles.tierName}>
+                      Team
+                    </h3>
+                    <p className={styles.tierPrice}>From $99 / month</p>
+                    <p className={styles.tierSubtitle}>For engineering organizations.</p>
+                  </div>
+                  <ul className={styles.tierFeatureList}>
+                    <li className={styles.tierFeatureItem}>
+                      Up to 10 team seats with role-based access
+                    </li>
+                    <li className={styles.tierFeatureItem}>
+                      Dedicated scanner container on Render / Railway
+                    </li>
+                    <li className={styles.tierFeatureItem}>
+                      Custom regex pattern definitions
+                    </li>
+                  </ul>
+                </div>
+                <motion.button
+                  type="button"
+                  whileTap={{ y: shouldReduceMotion ? 0 : 1 }}
+                  transition={{ duration: 0.12, ease: MECHANICAL_EASE }}
+                  className={styles.tierBtn}
+                >
+                  Contact sales
+                </motion.button>
+              </section>
+            </div>
+          </div>
+        </section>
+
+        {/* ── 6. Error & Failure States Specimen ── */}
+        <section id="error-states" aria-labelledby="error-states-heading" className={styles.section}>
+          <div className={styles.container}>
+            <div className={styles.sectionHeader}>
+              <h2 id="error-states-heading" className={styles.sectionTitle}>
+                Exact error and failure state specifications
+              </h2>
+            </div>
+            <ul className={styles.alertList}>
+              <li className={styles.alertItem}>
+                <span className={styles.alertCode}>INVALID_URL // 400</span>
+                <p role="alert" className={styles.alertMessage}>
+                  Please enter a valid public Git repository URL (e.g.,
+                  https://github.com/owner/repo).
+                </p>
+              </li>
+              <li className={styles.alertItem}>
+                <span className={styles.alertCode}>REPO_UNAVAILABLE // 404</span>
+                <p role="alert" className={styles.alertMessage}>
+                  Repository not found or private. Anonymous scans only support
+                  public repositories.
+                </p>
+              </li>
+              <li className={styles.alertItem}>
+                <span className={styles.alertCode}>RATE_LIMIT // 429</span>
+                <p role="alert" className={styles.alertMessage}>
+                  Anonymous scan limit reached (3 scans per 15 minutes). Wait 15
+                  minutes or sign in to continue.
+                </p>
+              </li>
+              <li className={styles.alertItem}>
+                <span className={styles.alertCode}>TIMEOUT // 504</span>
+                <p role="alert" className={styles.alertMessage}>
+                  The scan timed out. The repository exceeds the ephemeral limit
+                  (max 50MB / 1,000 commits).
+                </p>
+              </li>
+              <li className={styles.alertItem}>
+                <span className={styles.alertCode}>DEMO_FIXTURE_ERROR</span>
+                <p role="alert" className={styles.alertMessage}>
+                  Unable to load demo scan data. Please check your network
+                  connection and retry.
+                </p>
+              </li>
+              <li className={styles.alertItem}>
+                <span className={styles.alertCode}>CLIPBOARD_PERMISSION</span>
+                <p role="alert" className={styles.alertMessage}>
+                  Unable to access clipboard automatically. Please copy the
+                  commands manually.
+                </p>
+              </li>
+              <li className={styles.alertItem}>
+                <span className={styles.alertCode}>NETWORK_OFFLINE</span>
+                <p role="alert" className={styles.alertMessage}>
+                  You are offline. Showing cached remediation guide.
+                </p>
+              </li>
+              <li className={styles.alertItem}>
+                <span className={styles.alertCode}>DISPATCH_FAILED</span>
+                <p role="alert" className={styles.alertMessage}>
+                  Notification email could not be sent. Your scan results remain
+                  available in your dashboard.
+                </p>
+              </li>
+              <li className={styles.alertItem}>
+                <span className={styles.alertCode}>SECRET_NOT_FOUND // 404</span>
+                <p role="alert" className={styles.alertMessage}>
+                  Secret not found. The requested page or ephemeral report does not
+                  exist or expired.
+                </p>
+              </li>
+            </ul>
+          </div>
+        </section>
+
+        {/* ── Architecture Specification Drawer ── */}
+        <div className={styles.container}>
+          <aside
+            id="zero-retention-spec"
+            aria-labelledby="zero-retention-heading"
+            className={styles.architectureBox}
+          >
+            <h2 id="zero-retention-heading" className={styles.archTitle}>
+              Zero-retention architecture specification
+            </h2>
+            <p className={styles.archBody}>
+              Ephemeral RAM-disk clone — code deleted immediately after scan. No
+              registration required for public repositories.
             </p>
-            <button type="button">Download audit report (SARIF)</button>
-          </section>
-        </section>
-
-        {/* ── 4. Remediation Guide Specification ── */}
-        <section id="remediation" aria-labelledby="remediation-heading">
-          <h2 id="remediation-heading">
-            Step-by-step credential revocation and history purge.
-          </h2>
-          <p>
-            Deleting a secret in a new commit leaves it visible in Git history.
-            Follow these two steps to rotate credentials and scrub past commit
-            trees.
-          </p>
-
-          <nav aria-label="Remediation providers">
-            <ul>
-              <li>
-                <button type="button" aria-current="true">
-                  AWS IAM
-                </button>
-              </li>
-              <li>
-                <button type="button" aria-current="false">
-                  Stripe
-                </button>
-              </li>
-              <li>
-                <button type="button" aria-current="false">
-                  GitHub PAT
-                </button>
-              </li>
-              <li>
-                <button type="button" aria-current="false">
-                  OpenAI
-                </button>
-              </li>
-              <li>
-                <button type="button" aria-current="false">
-                  MongoDB URI
-                </button>
-              </li>
-              <li>
-                <button type="button" aria-current="false">
-                  SSH private key
-                </button>
-              </li>
-            </ul>
-          </nav>
-
-          <article aria-labelledby="step-1-heading">
-            <h3 id="step-1-heading">Step 1: Revoke the token immediately</h3>
-            <p>
-              Open your provider dashboard, deactivate the exposed credential
-              ID, and generate a new key pair with updated environment
-              variables.
-            </p>
-          </article>
-
-          <article aria-labelledby="step-2-heading">
-            <h3 id="step-2-heading">
-              Step 2: Scrub commit history using git-filter-repo
-            </h3>
-            <pre><code>git-filter-repo --invert-paths --path backend/.env --force</code></pre>
-            <button type="button">Copy command</button>
-            <p role="status">Command copied to clipboard</p>
-            <p>
-              Rewriting commit history alters commit hashes. Coordinate with your
-              team before pushing with --force.
-            </p>
-          </article>
-        </section>
-
-        {/* ── 5. Tiers & Pricing Specification ── */}
-        <section id="pricing" aria-labelledby="pricing-heading">
-          <h2 id="pricing-heading">Transparent capacity tiers.</h2>
-
-          <form action="#">
-            <label>
-              <input type="checkbox" name="annual" />
-              <span>Billed annually (save 20%)</span>
-            </label>
-          </form>
-
-          <section aria-labelledby="tier-free-heading">
-            <h3 id="tier-free-heading">Free</h3>
-            <p>$0</p>
-            <p>For public repository triage.</p>
-            <ul>
-              <li>Unlimited public repository scans</li>
-              <li>Anonymous instant execution</li>
-              <li>Rate limit: 3 scans per 15 minutes</li>
-            </ul>
-            <button type="button">Scan repository</button>
-          </section>
-
-          <section aria-labelledby="tier-pro-heading">
-            <h3 id="tier-pro-heading">Pro</h3>
-            <p>$29 / month</p>
-            <p>$23 / month</p>
-            <p>For independent engineers shipping daily.</p>
-            <ul>
-              <li>Includes all Free features</li>
-              <li>Private repository scanning via GitHub OAuth</li>
-              <li>Persistent scan history saved in Supabase</li>
-              <li>Email notifications via Resend on scan completion</li>
-            </ul>
-            <button type="button">Start 14-day trial</button>
-          </section>
-
-          <section aria-labelledby="tier-team-heading">
-            <h3 id="tier-team-heading">Team</h3>
-            <p>From $99 / month</p>
-            <p>For engineering organizations.</p>
-            <ul>
-              <li>Up to 10 team seats with role-based access</li>
-              <li>Dedicated scanner container on Render / Railway</li>
-              <li>Custom regex pattern definitions</li>
-            </ul>
-            <button type="button">Contact sales</button>
-          </section>
-        </section>
-
-        {/* ── 6. Error & Failure State Messages Specimen ── */}
-        <section id="error-states" aria-labelledby="error-states-heading">
-          <h2 id="error-states-heading">
-            Exact error and failure state specifications
-          </h2>
-          <ul>
-            <li>
-              <p role="alert">
-                Please enter a valid public Git repository URL (e.g.,
-                https://github.com/owner/repo).
-              </p>
-            </li>
-            <li>
-              <p role="alert">
-                Repository not found or private. Anonymous scans only support
-                public repositories.
-              </p>
-            </li>
-            <li>
-              <p role="alert">
-                Anonymous scan limit reached (3 scans per 15 minutes). Wait 15
-                minutes or sign in to continue.
-              </p>
-            </li>
-            <li>
-              <p role="alert">
-                The scan timed out. The repository exceeds the ephemeral limit
-                (max 50MB / 1,000 commits).
-              </p>
-            </li>
-            <li>
-              <p role="alert">
-                Unable to load demo scan data. Please check your network
-                connection and retry.
-              </p>
-            </li>
-            <li>
-              <p role="alert">
-                Unable to access clipboard automatically. Please copy the
-                commands manually.
-              </p>
-            </li>
-            <li>
-              <p role="alert">
-                You are offline. Showing cached remediation guide.
-              </p>
-            </li>
-            <li>
-              <p role="alert">
-                Notification email could not be sent. Your scan results remain
-                available in your dashboard.
-              </p>
-            </li>
-            <li>
-              <p role="alert">
-                Secret not found. The requested page or ephemeral report does not
-                exist or expired.
-              </p>
-            </li>
-          </ul>
-        </section>
-
-        {/* ── Architecture Specification Drawer / Reference ── */}
-        <aside id="zero-retention-spec" aria-labelledby="zero-retention-heading">
-          <h2 id="zero-retention-heading">
-            Zero-retention architecture specification
-          </h2>
-          <p>
-            Ephemeral RAM-disk clone — code deleted immediately after scan. No
-            registration required for public repositories.
-          </p>
-        </aside>
+          </aside>
+        </div>
       </main>
 
       {/* ── 7. Global Footer ── */}
-      <footer>
-        <p>Secretless Code</p>
-        <p>
-          © [NEEDS FACT: current year] Secretless Code. Ephemeral credential
-          security.
-        </p>
+      <footer className={styles.footer}>
+        <div className={`${styles.container} ${styles.footerInner}`}>
+          <div>
+            <p className={styles.footerBrand}>Secretless Code</p>
+            <p className={styles.footerCopyright}>
+              © [NEEDS FACT: current year] Secretless Code. Ephemeral credential
+              security.
+            </p>
+          </div>
 
-        <nav aria-label="Footer navigation">
-          <ul>
-            <li>
-              <a href="#zero-retention-spec">Zero-retention architecture</a>
-            </li>
-            <li>
-              <a href="#terms">Terms of service</a>
-            </li>
-            <li>
-              <a href="#privacy">Privacy policy</a>
-            </li>
-            <li>
-              <a href="https://github.com/zameernagaral/secretlessCode">
-                GitHub repository
-              </a>
-            </li>
-          </ul>
-        </nav>
+          <nav aria-label="Footer navigation">
+            <ul className={styles.footerNavList}>
+              <li>
+                <a href="#zero-retention-spec" className={styles.footerLink}>
+                  Zero-retention architecture
+                </a>
+              </li>
+              <li>
+                <a href="#terms" className={styles.footerLink}>
+                  Terms of service
+                </a>
+              </li>
+              <li>
+                <a href="#privacy" className={styles.footerLink}>
+                  Privacy policy
+                </a>
+              </li>
+              <li>
+                <a
+                  href="https://github.com/zameernagaral/secretlessCode"
+                  className={styles.footerLink}
+                >
+                  GitHub repository
+                </a>
+              </li>
+            </ul>
+          </nav>
+        </div>
       </footer>
+
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onSuccess={(user) => setCurrentUser(user)}
+      />
     </>
   );
 }

@@ -136,73 +136,74 @@ after(() => {
 
 // ── Test suites ───────────────────────────────────────────────────────────────
 
-describe('GET /api/health', () => {
+describe('GET /api/v1/health', () => {
   test('returns 200 with correct structure', async () => {
-    const { status, body, headers } = await request('GET', '/api/health');
+    const { status, body, headers } = await request('GET', '/api/v1/health');
     assert.equal(status, 200);
-    assert.equal(body.status, 'healthy');
-    assert.ok(body.timestamp, 'should include timestamp');
+    assert.equal(body.data?.status || body.status, 'healthy');
+    assert.ok(body.data?.timestamp || body.timestamp, 'should include timestamp');
     assert.ok(headers['x-request-id'], 'should include X-Request-ID header');
   });
 });
 
-describe('POST /api/scan — input validation', () => {
+describe('POST /api/v1/scan — input validation', () => {
   test('rejects missing repoUrl (400)', async () => {
-    const { status, body } = await request('POST', '/api/scan', { body: {} });
+    const { status, body } = await request('POST', '/api/v1/scan', { body: {} });
     assert.equal(status, 400);
-    assert.equal(body.status, 'error');
-    assert.ok(['VALIDATION_ERROR', 'INVALID_URL'].includes(body.errorCode));
+    const code = body.errorCode || body.error?.code;
+    assert.ok(['VALIDATION_ERROR', 'INVALID_URL'].includes(code));
   });
 
   test('rejects non-string repoUrl (400)', async () => {
-    const { status, body } = await request('POST', '/api/scan', { body: { repoUrl: 123 } });
+    const { status, body } = await request('POST', '/api/v1/scan', { body: { repoUrl: 123 } });
     assert.equal(status, 400);
-    assert.equal(body.errorCode, 'VALIDATION_ERROR');
+    assert.equal(body.errorCode || body.error?.code, 'VALIDATION_ERROR');
   });
 
   test('rejects unknown extra fields in strict mode (400)', async () => {
-    const { status, body } = await request('POST', '/api/scan', {
+    const { status, body } = await request('POST', '/api/v1/scan', {
       body: { repoUrl: 'https://github.com/a/b', hack: 'value' }
     });
     assert.equal(status, 400);
-    assert.equal(body.errorCode, 'VALIDATION_ERROR');
-    assert.ok(body.message.toLowerCase().includes('unknown') || body.errors?.some(e => e.includes('unknown')));
+    assert.equal(body.errorCode || body.error?.code, 'VALIDATION_ERROR');
+    const msg = (body.message || body.error?.message || '').toLowerCase();
+    assert.ok(msg.includes('unknown') || body.errors?.some(e => e.includes('unknown')));
   });
 
   test('rejects non-GitHub URL (400 INVALID_URL)', async () => {
-    const { status, body } = await request('POST', '/api/scan', {
+    const { status, body } = await request('POST', '/api/v1/scan', {
       body: { repoUrl: 'https://gitlab.com/owner/repo' }
     });
     assert.equal(status, 400);
-    assert.equal(body.errorCode, 'INVALID_URL');
+    assert.equal(body.errorCode || body.error?.code, 'INVALID_URL');
   });
 
   test('rejects SSRF attempt — localhost (400)', async () => {
-    const { status, body } = await request('POST', '/api/scan', {
+    const { status, body } = await request('POST', '/api/v1/scan', {
       body: { repoUrl: 'https://localhost/evil/repo' }
     });
     assert.equal(status, 400);
-    assert.equal(body.errorCode, 'INVALID_URL');
+    assert.equal(body.errorCode || body.error?.code, 'INVALID_URL');
   });
 
   test('rejects SSRF attempt — private IP (400)', async () => {
-    const { status, body } = await request('POST', '/api/scan', {
+    const { status, body } = await request('POST', '/api/v1/scan', {
       body: { repoUrl: 'https://192.168.1.1/evil/repo' }
     });
     assert.equal(status, 400);
-    assert.equal(body.errorCode, 'INVALID_URL');
+    assert.equal(body.errorCode || body.error?.code, 'INVALID_URL');
   });
 
   test('rejects shell injection in URL (400)', async () => {
-    const { status, body } = await request('POST', '/api/scan', {
+    const { status, body } = await request('POST', '/api/v1/scan', {
       body: { repoUrl: 'https://github.com/owner/repo;rm -rf /' }
     });
     assert.equal(status, 400);
-    assert.equal(body.errorCode, 'INVALID_URL');
+    assert.equal(body.errorCode || body.error?.code, 'INVALID_URL');
   });
 
   test('rejects prototype pollution payload (does not crash server)', async () => {
-    const { status } = await request('POST', '/api/scan', {
+    const { status } = await request('POST', '/api/v1/scan', {
       body: { repoUrl: 'https://github.com/a/b', __proto__: { admin: true } }
     });
     // Should return 400 (unknown field) or strip the __proto__ and process normally
@@ -210,14 +211,14 @@ describe('POST /api/scan — input validation', () => {
   });
 
   test('rejects repoUrl longer than 300 chars (400)', async () => {
-    const { status, body } = await request('POST', '/api/scan', {
+    const { status, body } = await request('POST', '/api/v1/scan', {
       body: { repoUrl: 'https://github.com/owner/' + 'a'.repeat(280) }
     });
     assert.equal(status, 400);
   });
 });
 
-describe('POST /api/scan/upload — file upload', () => {
+describe('POST /api/v1/scan/upload — file upload', () => {
   let testZipPath;
   let testTxtPath;
 
@@ -247,20 +248,19 @@ describe('POST /api/scan/upload — file upload', () => {
   });
 
   test('rejects request with no file attached (400 NO_FILE)', async () => {
-    const { status, body } = await request('POST', '/api/scan/upload');
+    const { status, body } = await request('POST', '/api/v1/scan/upload');
     assert.equal(status, 400);
-    // Without content-type multipart, express won't parse — should still return structured error
-    assert.ok([400, 415].includes(status));
+    assert.equal(body.errorCode || body.error?.code, 'NO_FILE');
   });
 
   test('rejects .txt file (400 INVALID_FILE)', async () => {
-    const { status, body } = await uploadRequest('/api/scan/upload', testTxtPath);
+    const { status, body } = await uploadRequest('/api/v1/scan/upload', testTxtPath);
     assert.equal(status, 400);
-    assert.equal(body.errorCode, 'INVALID_FILE');
+    assert.equal(body.errorCode || body.error?.code, 'INVALID_FILE');
   });
 });
 
-describe('Admin routes — /api/admin/*', () => {
+describe('Admin routes — /api/v1/admin/*', () => {
   test('returns 503 when ADMIN_API_KEY is not configured', async () => {
     // Temporarily clear the key for this test
     const savedKey = process.env.ADMIN_API_KEY;
@@ -279,34 +279,35 @@ describe('Admin routes — /api/admin/*', () => {
   });
 
   test('returns 401 with no Authorization header', async () => {
-    const { status, body } = await request('GET', '/api/admin/health');
+    const { status, body } = await request('GET', '/api/v1/admin/health');
     assert.equal(status, 401);
-    assert.equal(body.errorCode, 'MISSING_AUTH');
+    assert.equal(body.errorCode || body.error?.code, 'MISSING_AUTH');
   });
 
   test('returns 401 with wrong token', async () => {
-    const { status, body } = await request('GET', '/api/admin/health', {
+    const { status, body } = await request('GET', '/api/v1/admin/health', {
       headers: { Authorization: 'Bearer wrong-token-here' }
     });
     assert.equal(status, 401);
-    assert.equal(body.errorCode, 'INVALID_AUTH');
+    assert.equal(body.errorCode || body.error?.code, 'INVALID_AUTH');
   });
 
   test('returns 200 with correct ADMIN_API_KEY', async () => {
-    const { status, body } = await request('GET', '/api/admin/health', {
+    const { status, body } = await request('GET', '/api/v1/admin/health', {
       headers: { Authorization: `Bearer ${ADMIN_KEY}` }
     });
     assert.equal(status, 200);
-    assert.equal(body.status, 'healthy');
-    assert.ok(body.uptime >= 0);
+    assert.equal(body.data?.status || body.status, 'healthy');
+    const uptime = body.data?.uptime ?? body.uptime;
+    assert.ok(uptime >= 0);
   });
 
-  test('GET /api/admin/config — returns config with secrets as booleans only', async () => {
-    const { status, body } = await request('GET', '/api/admin/config', {
+  test('GET /api/v1/admin/config — returns config with secrets as booleans only', async () => {
+    const { status, body } = await request('GET', '/api/v1/admin/config', {
       headers: { Authorization: `Bearer ${ADMIN_KEY}` }
     });
     assert.equal(status, 200);
-    const secrets = body.config?.secretsConfigured;
+    const secrets = body.data?.config?.secretsConfigured || body.config?.secretsConfigured;
     assert.ok(secrets, 'secretsConfigured should be present');
     // Every value must be boolean — never the actual secret string
     for (const [key, value] of Object.entries(secrets)) {
@@ -314,41 +315,65 @@ describe('Admin routes — /api/admin/*', () => {
     }
   });
 
-  test('POST /api/admin/clear-cache — requires auth', async () => {
-    const { status } = await request('POST', '/api/admin/clear-cache');
+  test('POST /api/v1/admin/clear-cache — requires auth', async () => {
+    const { status } = await request('POST', '/api/v1/admin/clear-cache');
     assert.equal(status, 401);
   });
 });
 
+describe('Scan history endpoints', () => {
+  test('GET /api/v1/scans — returns 200 with list of scans', async () => {
+    const { status, body } = await request('GET', '/api/v1/scans');
+    assert.equal(status, 200);
+    assert.equal(body.success, true);
+    assert.ok(Array.isArray(body.data?.scans), 'scans should be an array');
+  });
+
+  test('GET /api/v1/scans/:id — returns 404 for nonexistent scan ID', async () => {
+    const { status, body } = await request('GET', '/api/v1/scans/non-existent-scan-id');
+    assert.equal(status, 404);
+    assert.equal(body.success, false);
+    assert.equal(body.error?.code, 'NOT_FOUND');
+  });
+
+  test('GET /api/v1/scans/private/:userId — unauthenticated access denied with 401', async () => {
+    const { status, body } = await request('GET', '/api/v1/scans/private/user-12345');
+    assert.equal(status, 401);
+    assert.equal(body.success, false);
+    assert.equal(body.error?.code, 'UNAUTHORIZED');
+  });
+});
+
+
 describe('404 handler', () => {
   test('returns structured 404 for unknown routes', async () => {
-    const { status, body } = await request('GET', '/api/does-not-exist');
+    const { status, body } = await request('GET', '/api/v1/does-not-exist');
     assert.equal(status, 404);
-    assert.equal(body.status, 'error');
-    assert.equal(body.errorCode, 'NOT_FOUND');
+    assert.equal(body.status === 'error' || body.success === false, true);
+    assert.equal(body.errorCode || body.error?.code, 'NOT_FOUND');
   });
 
   test('POST to unknown route also returns 404', async () => {
-    const { status, body } = await request('POST', '/api/nonexistent', { body: {} });
+    const { status, body } = await request('POST', '/api/v1/nonexistent', { body: {} });
     assert.equal(status, 404);
-    assert.equal(body.errorCode, 'NOT_FOUND');
+    assert.equal(body.errorCode || body.error?.code, 'NOT_FOUND');
   });
 });
 
 describe('Security headers', () => {
   test('response includes X-Request-ID', async () => {
-    const { headers } = await request('GET', '/api/health');
+    const { headers } = await request('GET', '/api/v1/health');
     assert.ok(headers['x-request-id'], 'X-Request-ID must be set');
     assert.match(headers['x-request-id'], /^[0-9a-f]{8}$/, 'X-Request-ID should be 8 hex chars');
   });
 
   test('response includes X-Content-Type-Options: nosniff', async () => {
-    const { headers } = await request('GET', '/api/health');
+    const { headers } = await request('GET', '/api/v1/health');
     assert.equal(headers['x-content-type-options'], 'nosniff');
   });
 
   test('response includes X-Frame-Options: DENY', async () => {
-    const { headers } = await request('GET', '/api/health');
+    const { headers } = await request('GET', '/api/v1/health');
     assert.ok(headers['x-frame-options']?.includes('DENY'), 'X-Frame-Options should deny framing');
   });
 });

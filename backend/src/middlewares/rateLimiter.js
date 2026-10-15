@@ -16,12 +16,26 @@ function rateLimitHandler(req, res, next, options) {
 
 // ── Config from env (with safe defaults) ─────────────────────────────────────
 
-const GLOBAL_MAX     = parseInt(process.env.RATE_GLOBAL_MAX, 10)     || 200;
+const GLOBAL_MAX     = parseInt(process.env.RATE_GLOBAL_MAX, 10)     || 500;
 const GLOBAL_WINDOW  = parseInt(process.env.RATE_GLOBAL_WINDOW_MS, 10)  || 15 * 60 * 1000; // 15 min
-const SCAN_MAX       = parseInt(process.env.RATE_SCAN_MAX, 10)       || 5;
-const SCAN_WINDOW    = parseInt(process.env.RATE_SCAN_WINDOW_MS, 10)    || 60 * 60 * 1000; // 1 hour
-const HEALTH_MAX     = parseInt(process.env.RATE_HEALTH_MAX, 10)     || 60;
+const SCAN_MAX       = parseInt(process.env.RATE_SCAN_MAX, 10)       || 100;
+const SCAN_WINDOW    = parseInt(process.env.RATE_SCAN_WINDOW_MS, 10)    || 15 * 60 * 1000; // 15 min
+const HEALTH_MAX     = parseInt(process.env.RATE_HEALTH_MAX, 10)     || 120;
 const HEALTH_WINDOW  = parseInt(process.env.RATE_HEALTH_WINDOW_MS, 10)  || 60 * 1000;      // 1 min
+
+// Helper to detect internal / private / localhost IPs
+function isPrivateOrLocalIp(ip = '') {
+  return (
+    ip === '127.0.0.1' ||
+    ip === '::1' ||
+    ip === 'localhost' ||
+    ip.startsWith('::ffff:127.') ||
+    ip.startsWith('::ffff:172.') ||
+    ip.startsWith('172.') ||
+    ip.startsWith('10.') ||
+    ip.startsWith('192.168.')
+  );
+}
 
 // ── 1. Global limiter — applied to all routes ─────────────────────────────────
 // Protects against DDoS and general abuse on any endpoint.
@@ -47,8 +61,11 @@ const scanLimiter = rateLimit({
   legacyHeaders: false,
   message: `Scan limit exceeded. Maximum ${SCAN_MAX} scans per ${SCAN_WINDOW / 60000} minutes per IP. Please wait before scanning again.`,
   handler: rateLimitHandler,
-  keyGenerator: (req) => ipKeyGenerator(req),
-  skip: (req) => process.env.NODE_ENV === 'test'
+  skip: (req) => {
+    if (process.env.NODE_ENV === 'test') return true;
+    const ip = req.ip || req.connection?.remoteAddress || '';
+    return isPrivateOrLocalIp(ip);
+  }
 });
 
 // ── 3. Health check limiter ───────────────────────────────────────────────────
