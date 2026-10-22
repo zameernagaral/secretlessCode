@@ -2,8 +2,7 @@
 
 > Find leaked API keys in Git before they are exploited, with zero code persistence and instant remediation commands.
 
-[Live Deployment](https://secretless-code.vercel.app) · [NEEDS FACT: production domain]
-
+[Live Deployment](https://secretless-code.vercel.app)
 ![Secretless Code Live Console Specimen](shots/landing-1440.png)
 
 ---
