@@ -80,9 +80,15 @@ async function scan(targetDir, reportPath) {
     const description = f.Description || f.description || ruleId;
     const { severity, secretType } = getRuleMetadata(ruleId, description);
 
+    // Normalize file path relative to targetDir so internal /tmp paths don't leak
+    const rawFile = f.File || f.file || 'unknown';
+    const filePath = rawFile !== 'unknown'
+      ? path.relative(targetDir, path.resolve(targetDir, rawFile)) || path.basename(rawFile)
+      : 'unknown';
+
     return {
       id: `gl-${i + 1}`,
-      filePath: f.File || f.file || 'unknown',
+      filePath,
       lineNumber: f.StartLine || f.startLine || 1,
       endLine: f.EndLine || f.endLine || f.StartLine || 1,
       secretType,

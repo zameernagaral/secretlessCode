@@ -163,9 +163,13 @@ export default function SignatureConsole() {
           }
           const token = f.rawMatch || f.match || f.secret || '••••••••';
           const lineNum = f.lineNumber || f.startLine || f.line || 1;
-          const location = `${f.filePath || 'repo'}:${lineNum}`;
-          const filterCommand = f.filePath
-            ? `git-filter-repo --invert-paths --path ${f.filePath} --force`
+          let cleanFilePath = (f.filePath || 'repo').trim();
+          if (cleanFilePath.includes('secretless-')) {
+            cleanFilePath = cleanFilePath.replace(/^.*\/secretless-(?:scan|extract|pr|upload)-[a-f0-9]+\//, '');
+          }
+          const location = `${cleanFilePath}:${lineNum}`;
+          const filterCommand = cleanFilePath && cleanFilePath !== 'repo'
+            ? `git-filter-repo --invert-paths --path ${cleanFilePath} --force`
             : undefined;
           let revokeUrl: string | undefined = undefined;
           const lower = (type + ' ' + (f.ruleId || '')).toLowerCase();

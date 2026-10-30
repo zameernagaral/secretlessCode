@@ -1,4 +1,5 @@
 const { execFile } = require('child_process');
+const path = require('path');
 const { getRuleMetadata } = require('../ruleSeverity');
 
 const TRUFFLEHOG_PATH = process.env.TRUFFLEHOG_PATH || 'trufflehog';
@@ -115,7 +116,10 @@ async function scan(targetDir) {
         || f.SourceMetadata?.Data?.Git
         || {};
 
-      const filePath = fsData.file || fsData.File || 'unknown';
+      const rawFilePath = fsData.file || fsData.File || 'unknown';
+      const filePath = rawFilePath !== 'unknown'
+        ? path.relative(targetDir, path.resolve(targetDir, rawFilePath)) || path.basename(rawFilePath)
+        : 'unknown';
       const lineNumber = parseInt(fsData.line || fsData.Line || 1, 10);
       const detectorName = f.DetectorName || f.detectorName || '';
       const verified = f.Verified === true || f.verified === true;

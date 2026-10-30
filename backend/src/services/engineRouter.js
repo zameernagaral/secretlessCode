@@ -1,3 +1,4 @@
+const path = require('path');
 const logger = require('./../utils/logger');
 /**
  * Engine Router — Secretless Code Scanning Engine Selector
@@ -20,12 +21,28 @@ const builtin = require('./engines/builtin');
 const SCAN_ENGINE = (process.env.SCAN_ENGINE || 'auto').toLowerCase().trim();
 
 /**
+ * Normalizes filePath in a finding to be repo-relative (removes temp directories).
+ */
+function normalizeFindingPath(f, targetDir) {
+  if (!f || !f.filePath || f.filePath === 'unknown') return f;
+  let filePath = f.filePath;
+  if (targetDir && (path.isAbsolute(filePath) || filePath.includes(targetDir))) {
+    filePath = path.relative(targetDir, path.resolve(targetDir, filePath)) || path.basename(filePath);
+  }
+  if (filePath.includes('secretless-')) {
+    filePath = filePath.replace(/^.*\/secretless-(?:scan|extract|pr|upload)-[a-f0-9]+\//, '');
+  }
+  return { ...f, filePath };
+}
+
+/**
  * Deduplicates findings from multiple engines.
  * Treats findings at the same file + line as duplicates, keeping the higher severity one.
  */
-function deduplicateFindings(findings) {
+function deduplicateFindings(findings, targetDir) {
   const seen = new Map();
-  for (const f of findings) {
+  for (const raw of findings) {
+    const f = targetDir ? normalizeFindingPath(raw, targetDir) : raw;
     const key = `${f.filePath}:${f.lineNumber}`;
     if (!seen.has(key)) {
       seen.set(key, f);
@@ -55,20 +72,20 @@ async function runScan(targetDir, reportPath) {
     case 'gitleaks': {
       if (await gitleaks.isAvailable()) {
         const findings = await gitleaks.scan(targetDir, reportPath);
-        return { findings, engineUsed: 'gitleaks' };
+        return { findings: findings.map(f => normalizeFindingPath(f, targetDir)), engineUsed: 'gitleaks' };
       }
       logger.warn('[Engine] Gitleaks not found — falling back to builtin scanner.');
-      return { findings: builtin.scan(targetDir), engineUsed: 'builtin-fallback' };
+      return { findings: builtin.scan(targetDir).map(f => normalizeFindingPath(f, targetDir)), engineUsed: 'builtin-fallback' };
     }
 
     // ── Explicit: TruffleHog only ───────────────────────────────────────────
     case 'trufflehog': {
       if (await truffleHog.isAvailable()) {
         const findings = await truffleHog.scan(targetDir);
-        return { findings, engineUsed: 'trufflehog' };
+        return { findings: findings.map(f => normalizeFindingPath(f, targetDir)), engineUsed: 'trufflehog' };
       }
       logger.warn('[Engine] TruffleHog not found — falling back to builtin scanner.');
-      return { findings: builtin.scan(targetDir), engineUsed: 'builtin-fallback' };
+      return { findings: builtin.scan(targetDir).map(f => normalizeFindingPath(f, targetDir)), engineUsed: 'builtin-fallback' };
     }
 
     // ── Both: Run Gitleaks + TruffleHog, merge and deduplicate results ──────
@@ -98,10 +115,10 @@ async function runScan(targetDir, reportPath) {
 
       if (enginesUsed.length === 0) {
         logger.warn('[Engine] Neither Gitleaks nor TruffleHog available — using builtin.');
-        return { findings: builtin.scan(targetDir), engineUsed: 'builtin-fallback' };
+        return { findings: builtin.scan(targetDir).map(f => normalizeFindingPath(f, targetDir)), engineUsed: 'builtin-fallback' };
       }
 
-      const deduplicated = deduplicateFindings(results);
+      const deduplicated = deduplicateFindings(results, targetDir);
       return {
         findings: deduplicated,
         engineUsed: enginesUsed.join('+')
@@ -135,7 +152,7 @@ async function runScan(targetDir, reportPath) {
         logger.warn('[Engine] Built-in scanner error in auto mode:', err.message);
       }
 
-      const deduplicated = deduplicateFindings(results);
+      const deduplicated = deduplicateFindings(results, targetDir);
       return {
         findings: deduplicated,
         engineUsed: enginesUsed.join('+') || 'builtin'
