@@ -33,6 +33,14 @@ interface ResultsTableProps {
   scannedAt: string;
 }
 
+function cleanFilePath(filePath?: string): string {
+  if (!filePath) return '';
+  if (filePath.includes('secretless-')) {
+    return filePath.replace(/^.*\/secretless-(?:scan|extract|pr|upload)-[a-f0-9]+\//, '');
+  }
+  return filePath;
+}
+
 export default function ResultsTable({ findings, repoName, scannedAt }: ResultsTableProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSeverity, setSelectedSeverity] = useState<string>('ALL');
@@ -63,7 +71,7 @@ export default function ResultsTable({ findings, repoName, scannedAt }: ResultsT
       scannedAt,
       totalFindings: findings.length,
       findings: findings.map((f) => ({
-        filePath: f.filePath,
+        filePath: cleanFilePath(f.filePath),
         lineNumber: f.lineNumber,
         secretType: f.secretType,
         ruleId: f.ruleId,
@@ -177,7 +185,8 @@ export default function ResultsTable({ findings, repoName, scannedAt }: ResultsT
               const isHigh = finding.severity === 'High';
 
               // GitHub file line link
-              const githubLineUrl = `https://github.com/${repoName}/blob/HEAD/${finding.filePath}#L${finding.lineNumber}`;
+              const safeFilePath = cleanFilePath(finding.filePath);
+              const githubLineUrl = `https://github.com/${repoName}/blob/HEAD/${safeFilePath}#L${finding.lineNumber}`;
 
               return (
                 <tr 
@@ -218,9 +227,9 @@ export default function ResultsTable({ findings, repoName, scannedAt }: ResultsT
                         target="_blank"
                         rel="noreferrer"
                         className="hover:text-accent hover:underline flex items-center space-x-1 group/link truncate max-w-[200px] sm:max-w-xs"
-                        title={finding.filePath}
+                        title={safeFilePath}
                       >
-                        <span className="truncate">{finding.filePath}</span>
+                        <span className="truncate">{safeFilePath}</span>
                         <ExternalLink className="w-3 h-3 opacity-0 group-hover/link:opacity-100 transition-opacity flex-shrink-0" />
                       </a>
                     </div>

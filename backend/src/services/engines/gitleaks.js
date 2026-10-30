@@ -53,8 +53,7 @@ async function scan(targetDir, reportPath) {
         `--report-path=${reportPath}`,
         '--report-format=json',
         '--no-git',
-        '--exit-code=0',   // exit 0 even when leaks found (exit 1 is the default on findings)
-        '--redact'         // mask secrets in stdout/stderr logs
+        '--exit-code=0'    // exit 0 even when leaks found (exit 1 is the default on findings)
       ],
       { timeout: SCAN_TIMEOUT_MS }
     );
@@ -80,9 +79,15 @@ async function scan(targetDir, reportPath) {
     const description = f.Description || f.description || ruleId;
     const { severity, secretType } = getRuleMetadata(ruleId, description);
 
+    // Normalize file path relative to targetDir so internal /tmp paths don't leak
+    const rawFile = f.File || f.file || 'unknown';
+    const filePath = rawFile !== 'unknown'
+      ? path.relative(targetDir, path.resolve(targetDir, rawFile)) || path.basename(rawFile)
+      : 'unknown';
+
     return {
       id: `gl-${i + 1}`,
-      filePath: f.File || f.file || 'unknown',
+      filePath,
       lineNumber: f.StartLine || f.startLine || 1,
       endLine: f.EndLine || f.endLine || f.StartLine || 1,
       secretType,

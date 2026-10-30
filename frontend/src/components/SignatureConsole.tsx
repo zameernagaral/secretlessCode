@@ -163,9 +163,13 @@ export default function SignatureConsole() {
           }
           const token = f.rawMatch || f.match || f.secret || '••••••••';
           const lineNum = f.lineNumber || f.startLine || f.line || 1;
-          const location = `${f.filePath || 'repo'}:${lineNum}`;
-          const filterCommand = f.filePath
-            ? `git-filter-repo --invert-paths --path ${f.filePath} --force`
+          let cleanFilePath = (f.filePath || 'repo').trim();
+          if (cleanFilePath.includes('secretless-')) {
+            cleanFilePath = cleanFilePath.replace(/^.*\/secretless-(?:scan|extract|pr|upload)-[a-f0-9]+\//, '');
+          }
+          const location = `${cleanFilePath}:${lineNum}`;
+          const filterCommand = cleanFilePath && cleanFilePath !== 'repo'
+            ? `git-filter-repo --invert-paths --path ${cleanFilePath} --force`
             : undefined;
           let revokeUrl: string | undefined = undefined;
           const lower = (type + ' ' + (f.ruleId || '')).toLowerCase();
@@ -176,7 +180,23 @@ export default function SignatureConsole() {
           else if (lower.includes('mongo') || lower.includes('database')) revokeUrl = 'https://cloud.mongodb.com';
           return { type, token, location, filterCommand, revokeUrl };
         });
-        setFindings(mapped);
+
+        // Deduplicate by location defensively, preferring authentic tokens over dummy/redacted values
+        const seenLocations = new Set<string>();
+        const uniqueFindings: Finding[] = [];
+        for (const item of mapped) {
+          if (!seenLocations.has(item.location)) {
+            seenLocations.add(item.location);
+            uniqueFindings.push(item);
+          } else {
+            const idx = uniqueFindings.findIndex(f => f.location === item.location);
+            if (idx !== -1 && uniqueFindings[idx].token.startsWith('R•') && !item.token.startsWith('R•')) {
+              uniqueFindings[idx] = item;
+            }
+          }
+        }
+
+        setFindings(uniqueFindings);
         setStatus('complete');
       } else {
         setFindings([]);
