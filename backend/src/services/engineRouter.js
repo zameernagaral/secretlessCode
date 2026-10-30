@@ -47,11 +47,20 @@ function deduplicateFindings(findings, targetDir) {
     if (!seen.has(key)) {
       seen.set(key, f);
     } else {
-      // Keep whichever has higher severity
+      // Keep whichever has higher severity, preferring authentic rawMatch over dummy/redacted values
       const existing = seen.get(key);
-      const severityRank = { Critical: 3, High: 2, Medium: 1 };
-      if ((severityRank[f.severity] || 0) > (severityRank[existing.severity] || 0)) {
+      const fHasRealMatch = f.rawMatch && f.rawMatch !== 'REDACTED';
+      const existingHasRealMatch = existing.rawMatch && existing.rawMatch !== 'REDACTED';
+
+      if (fHasRealMatch && !existingHasRealMatch) {
         seen.set(key, f);
+      } else if (!fHasRealMatch && existingHasRealMatch) {
+        // Keep existing real match
+      } else {
+        const severityRank = { Critical: 3, High: 2, Medium: 1 };
+        if ((severityRank[f.severity] || 0) > (severityRank[existing.severity] || 0)) {
+          seen.set(key, f);
+        }
       }
     }
   }

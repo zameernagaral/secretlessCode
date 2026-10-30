@@ -180,7 +180,23 @@ export default function SignatureConsole() {
           else if (lower.includes('mongo') || lower.includes('database')) revokeUrl = 'https://cloud.mongodb.com';
           return { type, token, location, filterCommand, revokeUrl };
         });
-        setFindings(mapped);
+
+        // Deduplicate by location defensively, preferring authentic tokens over dummy/redacted values
+        const seenLocations = new Set<string>();
+        const uniqueFindings: Finding[] = [];
+        for (const item of mapped) {
+          if (!seenLocations.has(item.location)) {
+            seenLocations.add(item.location);
+            uniqueFindings.push(item);
+          } else {
+            const idx = uniqueFindings.findIndex(f => f.location === item.location);
+            if (idx !== -1 && uniqueFindings[idx].token.startsWith('R•') && !item.token.startsWith('R•')) {
+              uniqueFindings[idx] = item;
+            }
+          }
+        }
+
+        setFindings(uniqueFindings);
         setStatus('complete');
       } else {
         setFindings([]);

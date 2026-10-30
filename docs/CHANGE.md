@@ -1,121 +1,104 @@
-# CHANGE: Real Dynamic Findings, Cloud Database Persistence & OAuth Auth (docs/CHANGE.md)
+# CHANGE: Normalize Scan Findings, Deduplicate Clean File Paths & Show Real Key (docs/CHANGE.md)
 
 ## 1. Goal
-Display real detected scan findings dynamically, persist scan records to cloud PostgreSQL via Prisma, and enable GitHub/Google sign-in with user scan history.
+Deduplicate scan findings by repo-relative file path and line number, showing only the real secret key from the file instead of internal temp directory paths or dummy redacted values.
 
 ---
 
 ## 2. Why
-- **Problem 1 (Scanner Bug):** When a user inputs a repository URL that contains exposed credentials, the backend successfully detects them, but `SignatureConsole.tsx` discards `data.data.findings` and renders hardcoded `STATIC_FINDINGS`. Real findings are never shown.
-- **Problem 2 (Database Missing):** Scan results are not saved to a database table (`Scan` model missing in Prisma), preventing users and developers from viewing or verifying stored records.
-- **Problem 3 (Auth Static):** The "Sign In" button in the header is a static hash anchor (`#sign-in`) without dynamic authentication or session awareness.
-- **Rubric / Spec:** Implements Feature 1 ("Instant Sample & Real URL Scanner") and Feature 4 ("User Authentication & Persistent Scan History") from `docs/APP.md` and `docs/DATABASE.MD`.
+- **Problem 1 (Leaked Server Path):** Gitleaks outputs absolute file paths from the shallow clone directory (`/tmp/secretless-scan-407fe1a7798227f5/config.js:1`), exposing internal server directory paths to the user.
+- **Problem 2 (Duplicate Findings):** In `auto` mode, Gitleaks and the Built-in engine both detect the credential in `config.js:1`. Because Gitleaks reports `/tmp/.../config.js` while Built-in reports `config.js`, the deduplication map (`${filePath}:${lineNumber}`) fails to match them, producing two findings for the same leaked credential.
+- **Problem 3 (Dummy Redacted Token `R••••••`):** Gitleaks was invoked with `--redact`, causing it to output the literal word `"REDACTED"` into the scan report. When passed through `maskRawMatch()`, `"REDACTED"` was masked into `"R••••••"`, obscuring the real key prefix (`AQ.A••••••••••••••••`) extracted from the file.
+- **Problem 4 (Uncommitted / Undeployed Code):** The live site at `secretless-code.vercel.app` is connected to deployed cloud infrastructure; changes exist only locally until committed and pushed to trigger CD workflows.
 
 ---
 
 ## 3. Files Permitted to Edit & Create
 
 ### Files You May Edit:
-1. `frontend/src/components/SignatureConsole.tsx` — Store dynamic findings from `/api/v1/scan` in state; render real detected secrets (tokens, rules, file paths, line numbers); fall back to sample specimen only when demo scan is explicitly clicked.
-2. `frontend/src/app/page.tsx` — Wire header "Sign In" button to open dynamic Auth modal / trigger Clerk OAuth; wire "Scan repository" tier buttons to auto-focus and scroll to the scanner.
-3. `frontend/src/app/layout.tsx` — Wrap application in `ClerkProvider` (with resilient fallback for local development if keys are unconfigured).
-4. `backend/prisma/schema.prisma` — Add `Scan` and `Finding` models connected to PostgreSQL `DATABASE_URL`.
-5. `backend/src/routes/scan.js` — Save completed scans to the database asynchronously upon scan execution.
-6. `backend/src/server.js` — Mount `/api/v1/scans` history route.
+1. `backend/src/services/engines/gitleaks.js` — Remove `--redact` flag so the engine captures the actual raw match in memory for server-side masking; normalize `filePath` to be repo-relative using `path.relative()`.
+2. `backend/src/services/engines/truffleHog.js` — Normalize `filePath` to be repo-relative using `path.relative()`.
+3. `backend/src/services/engineRouter.js` — Enforce path normalization before `deduplicateFindings()` so multi-engine scans merge identical `filePath:lineNumber` pairs and retain the authentic secret match.
+4. `frontend/src/components/SignatureConsole.tsx` — Strip any temporary clone path prefixes defensively; generate clean `git-filter-repo` commands and file location badges (`config.js:1`).
+5. `frontend/src/components/ResultsTable.tsx` — Clean file path in results table and ensure GitHub link points to `https://github.com/{repo}/blob/HEAD/{cleanFilePath}#L{lineNumber}`.
 
 ### New Files You May Create:
-1. `backend/src/routes/scansHistory.js` — Endpoints:
-   - `GET /api/v1/scans` (list recent public/anonymous scans)
-   - `GET /api/v1/scans/:id` (fetch single scan by ID with findings)
-2. `frontend/src/components/AuthModal.tsx` — Modal with direct "Sign in with GitHub" and "Sign in with Google" OAuth actions and session state.
-3. `frontend/src/app/dashboard/page.tsx` — Protected / personal scan history dashboard reading persisted scans from the database.
+*None.*
 
 ### Files You Must NOT Touch:
-- `.github/workflows/ci.yml`
-- `frontend/src/components/ui/*`
+- `backend/prisma/schema.prisma`
+- `backend/src/middlewares/auth.js`
+- `backend/src/routes/scansHistory.js`
 - `docs/RULES.md`
-- `docs/SECURITY.md`
-- Stripe payment files (reserved for billing change).
+- `docs/CODEBASE.md`
+- `.github/workflows/ci.yml`
 
 ---
 
 ## 4. Blast Radius
-- `SignatureConsole.tsx`: Used in `page.tsx`. If findings array is empty, it switches to `'clean'` state showing zero exposed secrets. If findings exist, it renders real cards with masked tokens (`••••`).
-- `backend/src/routes/scan.js`: Database save is executed via `saveScanToDb(result).catch(...)` so database network latency or connection drops never fail or block the scan HTTP response.
-- `ClerkProvider` in `layout.tsx`: Configured with fallback mode so unconfigured Clerk API keys never cause runtime SSR 500 errors.
+- `SignatureConsole.tsx`: Rendered on the homepage. Only impacts the display format of `location` and `filterCommand` string. Clean scan states (`findings.length === 0`) and demo scan states remain intact.
+- `ResultsTable.tsx`: Rendered in scan results view. Only impacts the displayed `filePath` label and the external GitHub link.
+- `engineRouter.js`: Normalizes finding paths before returning to `/api/v1/scan`, `/api/scan/upload`, and PR branch scans. Ensures all consumers receive clean repo-relative paths (`config.js:1`).
 
 ---
 
 ## 5. Design & Token Reuse
-- **Reused Tokens:** `--color-text-primary`, `--color-bg-card`, `--color-accent-amber`, `--font-mono`, `--border-dim`, `--space-4`.
-- **Reused Components:** `SignatureConsole.module.css` finding card tokens, `page.module.css` layout grid, existing button styles (`actionBtn`, `submitBtn`).
-- **New Element:** Auth modal styled using `--color-bg-card` and glassmorphic overlay matching existing aesthetic.
+- **Reused Components:** Existing finding cards in `SignatureConsole.tsx` and rows in `ResultsTable.tsx`.
+- **Reused Tokens:** `--font-mono`, `--color-text`, `--color-muted`, `--border-secondary`.
+- **New Elements:** None needed.
 
 ---
 
 ## 6. Permissions Table & Data Model
 
 ### Roles & Permissions:
-| Role | Run Real Git Scan | View Live Findings in UI | Save Scan to DB | View All Scans in Dashboard |
-| :--- | :--- | :--- | :--- | :--- |
-| **Anonymous** | Yes | Yes (Real masked findings) | Yes (Anonymous record) | Public / recent list only |
-| **Authenticated (GitHub/Google)** | Yes | Yes | Yes (Linked to `userId`) | Yes (Full user scan history) |
-| **Admin** | Yes | Yes | Yes | Yes (All system scans) |
+| Role | Run Git Scan | View Deduplicated Key | View Clean Relative Path |
+| :--- | :--- | :--- | :--- |
+| **Anonymous** | Yes | Yes (Masked: `AQ.A••••••••••••••••`) | Yes (`config.js:1`) |
+| **Authenticated** | Yes | Yes (Masked: `AQ.A••••••••••••••••`) | Yes (`config.js:1`) |
+| **Admin** | Yes | Yes (Masked: `AQ.A••••••••••••••••`) | Yes (`config.js:1`) |
 
-### Prisma Data Model (`backend/prisma/schema.prisma`):
-```prisma
-model Scan {
-  id             String    @id @default(uuid())
-  repoUrl        String
-  repoName       String
-  status         String    @default("completed") // completed | clean | failed
-  findingsCount  Int       @default(0)
-  findings       Json      // Array of: { ruleId, file, line, maskedToken, provider }
-  scanDurationMs Int?
-  isDemo         Boolean   @default(false)
-  ipHash         String?
-  userId         String?
-  createdAt      DateTime  @default(now())
-}
-```
+### Data Model:
+Unchanged. Findings are stored as JSON arrays in PostgreSQL `Scan.findings` with clean relative `filePath` attributes.
 
 ---
 
 ## 7. Failure States & Exact Error Messages
 
-1. **Clean Scan (Zero Secrets in Real Repo):**
+1. **Clean Scan (Zero Secrets Detected):**
    - *Message:* `"Zero exposed secrets detected. Scanned commit tree passed all Gitleaks pattern evaluations."`
 2. **Invalid Repository URL:**
    - *Message:* `"Please enter a valid public Git repository URL (e.g., https://github.com/owner/repo)."`
 3. **Private or Non-Existent Repository:**
    - *Message:* `"Repository not found or private. Anonymous scans only support public repositories."`
-4. **Backend Unreachable / Network Timeout:**
-   - *Message:* `"Unable to load scan data. Please check your network connection and retry."`
-5. **Rate Limit Exceeded:**
-   - *Message:* `"Anonymous scan limit reached (5 scans per hour). Wait before running another scan."`
 
 ### Edge Cases:
-1. **Scanned repository has 50+ findings:** Results container scrolls smoothly without breaking the layout or overlapping the terminal logs.
-2. **User runs demo scan vs real URL:** Clicking "Or scan sample vulnerable repository" loads the demo specimen; submitting a real URL in the input calls the live backend scanner and displays the real findings.
-3. **Database connection failure:** The scanner still completes the git clone and returns findings to the user; the database write error is logged without failing the user's scan.
+1. **Secret nested in deep subfolder (`backend/src/config/keys.js`):** `path.relative` strips only the ephemeral `/tmp/secretless-*` root, preserving `backend/src/config/keys.js`.
+2. **Multiple distinct secrets in the same file on different lines:** Deduplication keys on `${filePath}:${lineNumber}`, keeping all unique secret locations.
+3. **Empty or unparseable engine match:** Falls back safely to masked token `••••••••` without breaking UI rendering.
 
 ---
 
 ## 8. Acceptance Tests
 
-1. **Real Findings Display (Must Pass):** Pasting a public GitHub URL with exposed keys calls `POST /api/v1/scan` and renders the real detected file paths, line numbers, and masked tokens (`••••`) in the UI (not `STATIC_FINDINGS`).
-2. **Database Persistence (Must Pass):** Every completed scan writes a record to the `Scan` table, retrievable via `GET /api/v1/scans`.
-3. **Sign In & OAuth (Must Pass):** Clicking "Sign In" in the header opens the authentication dialog with working GitHub & Google sign-in options.
-4. **Denial Test (Must Be Denied):** Unauthenticated access to private scan history of another user (`GET /api/v1/scans/private/:userId`) must be denied with `HTTP 401` or `HTTP 403`.
+1. **Single Deduplicated Finding (Must Pass):** Scanning `https://github.com/zameernagaral/secretlesscodedemo` returns exactly **1** finding in the findings list instead of 2.
+2. **Repo-Relative File Path (Must Pass):** The finding displays location as `config.js:1`, containing zero occurrences of `/tmp/` or `secretless-scan-`.
+3. **Real Key Prefix (Must Pass):** The finding displays the authentic masked key from the file (`AQ.A••••••••••••••••`), and does not display the dummy `R••••••` value.
+4. **Valid Git Remediation Command (Must Pass):** Clicking "Copy git-filter-repo command" copies `git-filter-repo --invert-paths --path config.js --force`.
+5. **Denial Test (Must Be Denied):** SSRF attempt submitting `http://127.0.0.1:4000` or `http://localhost` must be denied with `HTTP 400` (`INVALID_URL`).
 
 ---
 
-## 9. Out of Scope for this Change
-- Stripe Checkout webhooks and payment processing (reserved for subsequent billing change).
-- GitHub App organization-wide PR automated comment installation.
+## 9. Out of Scope
+- Adding new regex rules or secret detector types.
+- Database schema migrations or authentication changes.
+- Direct remote production server modifications (deployment runs via GitHub Actions CI/CD after push).
 
 ---
 
-## 10. Branch & Rollback Plan
-- **Branch:** `fix/dynamic-scanner-cloud-db-auth`
-- **Rollback:** `git checkout main -- frontend/src/components/SignatureConsole.tsx frontend/src/app/page.tsx backend/prisma/schema.prisma backend/src/routes/scan.js`
+## 10. Branch Name & Rollback Plan
+- **Branch:** `fix/normalize-findings-clean-key`
+- **Rollback Command:**
+  ```bash
+  git checkout main -- backend/src/services/engines/gitleaks.js backend/src/services/engines/truffleHog.js backend/src/services/engineRouter.js frontend/src/components/SignatureConsole.tsx frontend/src/components/ResultsTable.tsx docs/CHANGE.md
+  ```

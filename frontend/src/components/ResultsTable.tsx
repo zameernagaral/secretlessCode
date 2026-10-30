@@ -71,7 +71,7 @@ export default function ResultsTable({ findings, repoName, scannedAt }: ResultsT
       scannedAt,
       totalFindings: findings.length,
       findings: findings.map((f) => ({
-        filePath: f.filePath,
+        filePath: cleanFilePath(f.filePath),
         lineNumber: f.lineNumber,
         secretType: f.secretType,
         ruleId: f.ruleId,

@@ -53,8 +53,7 @@ async function scan(targetDir, reportPath) {
         `--report-path=${reportPath}`,
         '--report-format=json',
         '--no-git',
-        '--exit-code=0',   // exit 0 even when leaks found (exit 1 is the default on findings)
-        '--redact'         // mask secrets in stdout/stderr logs
+        '--exit-code=0'    // exit 0 even when leaks found (exit 1 is the default on findings)
       ],
       { timeout: SCAN_TIMEOUT_MS }
     );
